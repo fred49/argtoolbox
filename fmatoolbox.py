@@ -33,6 +33,28 @@ import copy
 import datetime
 from ordereddict import OrderedDict
 import sys
+import ConfigParser
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+log = logging.getLogger()
+log.setLevel(logging.INFO)
+# logger formats
+myFormat = logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
+myDebugFormat = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s", "%H:%M:%S")
+# logger handlers
+streamHandler = logging.StreamHandler(sys.stdout)
+streamHandler.setFormatter(myFormat)
+log.addHandler(streamHandler)
+# debug mode
+# if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
+if True:
+	log.setLevel(logging.DEBUG)
+	streamHandler.setFormatter(myDebugFormat)
+
+# global logger variable
+log = logging.getLogger('linshare-cli')
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class DefaultHook(object):
@@ -61,11 +83,11 @@ class Base64DataHook(DefaultHook):
 # ---------------------------------------------------------------------------------------------------------------------
 class Config(object):
 
-	def __init__(self , config_file, prog_name, description = None, mandatory = False ) :
+	def __init__(self, prog_name, config_file = None, description = None, mandatory = False ) :
 		self.config_file = config_file
 		self.prog_name = prog_name
 		self.sections = OrderedDict()
-
+		self.mandatory = mandatory
 
 	def add_section(self, section):
 		if not isinstance(section, Section):
@@ -73,6 +95,21 @@ class Config(object):
 		self.sections[section.name] = section
 		return section
 
+	def load(self):
+		fileParser = ConfigParser.SafeConfigParser()
+		discoveredFileList  = []
+		if self.config_file :
+			discoveredFileList = fileParser.read([ self.config_file ])
+		else:
+			discoveredFileList = fileParser.read([ self.prog_name + ".cfg", os.path.expanduser('~/.' + self.prog_name + '.cfg'), '/etc/' + self.prog_name + '.cfg'])
+		log.debug("discoveredFileList: " + str(discoveredFileList))
+
+		if self.mandatory and len(discoveredFileList) < 1 :
+			print "Error : config file missing !"
+			sys.exit(1)
+
+		for s in self.sections.values():
+			s.load(fileParser)
 
 	def write_default_config_file(self):
 		pass
@@ -84,6 +121,35 @@ class Config(object):
 		pass
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+class Section(object):
+
+	def __init__(self, name, description = None, prefix = None, suffix = None):
+		self.elements = OrderedDict()
+		self.name = name
+		self.description = description
+		self.prefix = prefix
+		self.suffix = suffix
+
+	def add_element(self, elt):
+		if not isinstance(elt, Element):
+			raise TypeError("argument should be a subclass of Element")
+		self.elements[elt.name] = elt
+		return elt
+
+	def load(self, fileParser):
+		for e in self.elements.values() :
+			e.load(fileParser, self.name)
+
+
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+class ListSection(object):
+
+	def __init__(self, name, description = None, prefix = None, suffix = None):
+		pass
 # ---------------------------------------------------------------------------------------------------------------------
 class Element(object):
 	def __init__(self, name, e_type = str, required = False, default = None, required_as_arg = False, description = None, hooks = [ DefaultHook() ], hidden = False ):
@@ -112,33 +178,11 @@ class Element(object):
 		self.value = val
 			
 
-
-
-# ---------------------------------------------------------------------------------------------------------------------
-class Section(object):
-
-	def __init__(self, name, description = None, prefix = None, suffix = None):
-		self.elements = OrderedDict()
-		self.name = name
-		self.description = description
-		self.prefix = prefix
-		self.suffix = suffix
-
-	def add_element(self, elt):
-		if not isinstance(elt, Element):
-			raise TypeError("argument should be a subclass of Element")
-		self.elements[elt.name] = elt
-		return elt
-
-
-
-
-
-# ---------------------------------------------------------------------------------------------------------------------
-class ListSection(object):
-
-	def __init__(self, name, description = None, prefix = None, suffix = None):
-		pass
+	def load(self, fileParser, section_name):
+		try:
+			self.value = fileParser.get( section_name, self.name)
+		except ConfigParser.NoOptionError :
+			log.debug("Not found : " + self.name)
 
 
 
@@ -151,7 +195,8 @@ class ListSection(object):
 # MAIN
 # ---------------------------------------------------------------------------------------------------------------------
 
-c = Config("/home/fred/.linshare.ini", "linshare-cli", description = " simple user cli for linshare")
+c = Config("linshare-cli" , description = " simple user cli for linshare")
+#c = Config("linshare-cli" , "/home/fred/.linshare-cli.ini", description = " simple user cli for linshare")
 
 #def __init__(self, name, description = None, prefix = None, suffix = None):
 s = c.add_section(Section("server"))
@@ -169,5 +214,6 @@ s.add_element(Element('debug'))
 s.add_element(Element('verbose'))
 
 print c
+c.load()
 
 
