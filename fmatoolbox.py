@@ -48,7 +48,7 @@ streamHandler.setFormatter(myFormat)
 log.addHandler(streamHandler)
 # debug mode
 # if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
-if True:
+if False:
 	log.setLevel(logging.DEBUG)
 	streamHandler.setFormatter(myDebugFormat)
 
@@ -67,8 +67,8 @@ class DefaultHook(object):
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Base64DataHook(DefaultHook):
-	def __init__(self):
-		pass
+	def __init__(self, warning = False):
+		self.warning = warning
 
 	def __call__(self, elt):
 		if elt.value :
@@ -76,10 +76,11 @@ class Base64DataHook(DefaultHook):
 				data = base64.b64decode(elt.value)
 				elt.value = data
 			except TypeError as e:
-				print "WARN: Password is not stored in the configuration file with base64 encoding"
-				print e
-				sys.exit(1)
-	
+				if self.warning :
+					log.warn("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt.name })
+				else :
+					raise e
+
 # ---------------------------------------------------------------------------------------------------------------------
 class Config(object):
 
@@ -194,13 +195,14 @@ class Element(object):
 		self.description_for_argparse = None
 		self.value = None
 		self.hidden = hidden
+		self.hooks = hooks
 
 		for h in hooks :
 			if not isinstance(h, DefaultHook):
 				raise TypeError("hook argument should be a subclass of DefaultHook")
 
 	def post_read(self):
-		for h in hooks :
+		for h in self.hooks :
 			h(self)
 
 	def set_value(self, val):
@@ -210,6 +212,10 @@ class Element(object):
 		self.value = val
 
 	def load(self, fileParser, section_name):
+		self._load(fileParser , section_name)
+		self.post_read()
+
+	def _load(self, fileParser, section_name):
 		try:
 			data = fileParser.get( section_name, self.name)
 			log.debug("field found : " + self.name )
@@ -223,7 +229,7 @@ class Element(object):
 				if not data :
 					data = self.default
 
-			log.debug("fred field found : '%(name)s' , value : '%(data)s', type : '%(e_type)s'" , { "name": self.name , "data": data , "e_type" : self.e_type })
+			log.debug("field found : '%(name)s' , value : '%(data)s', type : '%(e_type)s'" , { "name": self.name , "data": data , "e_type" : self.e_type })
 			data = self.e_type(data)
 
 			# happens only when the current field is present, type is string, but value is ''

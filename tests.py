@@ -54,15 +54,13 @@ elt_type_bool= False
 elt_type_float = 1.00009
 elt_required=
 elt_no_value=
+elt_type_base64=c2VjcmV0
+elt_type_not_base64=cVjcmV0
+elt_hidden="do not show"
 
 \n"""
 	self.c = Config("linshare-cli" , config_file = io.BytesIO(sample_config), description = " simple user cli for linshare")
 	self.s = self.c.get_default_section()
- 
-	#s.add_element(Element('elt_type', e_type=int, default = 8))
-
-        #self.assertRaises(TypeError, self.c.load())
-	#AttributeError:
 
     def test_required(self):
 	self.s.add_element(Element('elt_missing', required=True))
@@ -75,6 +73,14 @@ elt_no_value=
     def test_required_without_value_without_default(self):
 	self.s.add_element(Element('elt_required', required=True))
         self.assertRaises(ValueError, self.c.load)
+
+    def test_no_attribute(self):
+	self.s.add_element(Element('elt_type_int', e_type=int,  required=True))
+	self.c.load()
+	self.assertEqual(5, self.c.default.elt_type_int)
+	def raiseAttributeErrorException():
+		self.c.default.elt_missing
+        self.assertRaises(AttributeError, raiseAttributeErrorException)
 
     def test_not_present(self):
 	self.s.add_element(Element('elt_missing'))
@@ -106,6 +112,24 @@ elt_no_value=
 	self.c.load()
 	self.assertEqual(1.00009, self.c.default.elt_type_float)
 
+    def test_hook_base64(self):
+	self.s.add_element(Element('elt_type_base64', hooks = [ Base64DataHook(),] ))
+	self.c.load()
+	self.assertEqual("secret", self.c.default.elt_type_base64)
+
+    def test_hook_not_base64(self):
+	self.s.add_element(Element('elt_type_not_base64', hooks = [ Base64DataHook(),] ))
+        self.assertRaises(TypeError, self.c.load)
+
+    def test_hook_not_base64_2(self):
+	self.s.add_element(Element('elt_type_not_base64', hooks = [ Base64DataHook(True),] ))
+	self.c.load()
+	self.assertEqual("cVjcmV0", self.c.default.elt_type_not_base64)
+
+    def test_hidden(self):
+	self.s.add_element(Element('elt_hidden', hidden = True ))
+	self.c.load()
+	# TODO : code the test
 
     def test_type_wrong_int(self):
 	self.s.add_element(Element('elt_type_str2', e_type=int))
