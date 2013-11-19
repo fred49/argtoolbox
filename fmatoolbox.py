@@ -88,6 +88,7 @@ class Config(object):
 		self.prog_name = prog_name
 		self.sections = OrderedDict()
 		self.mandatory = mandatory
+		self._default_section = self.add_section(Section("DEFAULT"))
 
 	def add_section(self, section):
 		if not isinstance(section, Section):
@@ -95,20 +96,37 @@ class Config(object):
 		self.sections[section.name] = section
 		return section
 
+	def get_section(self, section):
+		return self.sections.get(section)
+
+	def get_default_section(self):
+		return self._default_section
+
 	def load(self):
 		fileParser = ConfigParser.SafeConfigParser()
-		discoveredFileList  = []
+		discoveredFileList = []
 		if self.config_file :
-			discoveredFileList = fileParser.read([ self.config_file ])
+			if isinstance(self.config_file , str):
+				discoveredFileList = fileParser.read(self.config_file)
+			else:
+				discoveredFileList = fileParser.readfp(self.config_file, "file descriptor")
 		else:
-			discoveredFileList = fileParser.read([ self.prog_name + ".cfg", os.path.expanduser('~/.' + self.prog_name + '.cfg'), '/etc/' + self.prog_name + '.cfg'])
+			defaultFileList = []
+			defaultFileList.append(self.prog_name + ".cfg")
+			defaultFileList.append(os.path.expanduser('~/.' + self.prog_name + '.cfg'))
+			defaultFileList.append('/etc/' + self.prog_name + '.cfg')
+			discoveredFileList = fileParser.read(defaultFileList)
+
 		log.debug("discoveredFileList: " + str(discoveredFileList))
 
 		if self.mandatory and len(discoveredFileList) < 1 :
-			print "Error : config file missing !"
-			sys.exit(1)
+			msg="The required config file was missing. Default config files : " + str(defaultFileList)
+			log.error(msg)
+			raise EnvironmentError(msg)
 
+		#print fileParser.items("DEFAULT")
 		for s in self.sections.values():
+			log.debug("loading section : " + s.name)
 			s.load(fileParser)
 
 	def write_default_config_file(self):
@@ -120,6 +138,15 @@ class Config(object):
 	def push(self, args):
 		pass
 
+	def __getattr__(self, name):
+		if name.lower() == "default":
+			return self._default_section
+		s = self.sections.get(name)
+		if s :
+			return s
+		else:
+			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
+						% { "name" : name, "class" : self.__class__.__name__ } )
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Section(object):
@@ -141,9 +168,13 @@ class Section(object):
 		for e in self.elements.values() :
 			e.load(fileParser, self.name)
 
-
-
-
+	def __getattr__(self, name):
+		e = self.elements.get(name)
+		if e :
+			return getattr(e, 'value')
+		else:
+			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
+						% { "name" : name, "class" : self.__class__.__name__ } )
 
 # ---------------------------------------------------------------------------------------------------------------------
 class ListSection(object):
@@ -174,46 +205,44 @@ class Element(object):
 
 	def set_value(self, val):
 		if not instance(val, self.e_type):
-			raise TypeError("Element value from config called '" + self.name + "' should have the type : " + str(self.e_type))
+			raise TypeError("Element value from config called '%(name)s' should have the type : '%(e_type)s'" 
+				 % { "name": self.name , "e_type" : self.e_type })
 		self.value = val
-			
 
 	def load(self, fileParser, section_name):
 		try:
-			self.value = fileParser.get( section_name, self.name)
+			data = fileParser.get( section_name, self.name)
+			log.debug("field found : " + self.name )
+			if self.required :
+				if not data :
+					msg = "The required field '%(name)s' was missing from the config file." % { "name": self.name }
+					log.error(msg)
+					raise ValueError(msg)
+				data = self.e_type(data)
+			elif self.default :
+				if not data :
+					data = self.default
+
+			log.debug("fred field found : '%(name)s' , value : '%(data)s', type : '%(e_type)s'" , { "name": self.name , "data": data , "e_type" : self.e_type })
+			data = self.e_type(data)
+
+			# happens only when the current field is present, type is string, but value is ''
+			if not data:
+				msg = "The optional field '%(name)s' was present, type is string, but the current value is an empty string." % { "name": self.name }
+				log.error(msg)
+				raise ValueError(msg)
+
+			self.value = data
+
 		except ConfigParser.NoOptionError :
-			log.debug("Not found : " + self.name)
+			if self.required :
+				msg = "The required field " + self.name  + " was missing from the config file."
+				log.error(msg)
+				raise ValueError(msg)
 
-
-
-
-
-
-
-
-# ---------------------------------------------------------------------------------------------------------------------
-# MAIN
-# ---------------------------------------------------------------------------------------------------------------------
-
-c = Config("linshare-cli" , description = " simple user cli for linshare")
-#c = Config("linshare-cli" , "/home/fred/.linshare-cli.ini", description = " simple user cli for linshare")
-
-#def __init__(self, name, description = None, prefix = None, suffix = None):
-s = c.add_section(Section("server"))
-
-#def __init__(self, name, e_type = str, required = False, default = None, required_as_arg = False, description = None, hooks = [ DefaultHook() ] ):
-s.add_element(Element('host', default = 'http://localhost:8080/linshare'))
-s.add_element(Element('real'))
-s.add_element(Element('user'))
-s.add_element(Element('password', hidden = True, hooks = [ Base64DataHook(),] ))
-s.add_element(Element('application_name'))
-s.add_element(Element('config_file'))
-s.add_element(Element('server_section'))
-s.add_element(Element('nocache'))
-s.add_element(Element('debug'))
-s.add_element(Element('verbose'))
-
-print c
-c.load()
-
+			if self.default :
+				self.value = self.default
+				log.debug("Field not found : " + self.name + ", default value : " + str(self.default))
+			else:
+				log.debug("Field not found : " + self.name)
 
