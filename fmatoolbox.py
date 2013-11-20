@@ -34,6 +34,7 @@ import datetime
 from ordereddict import OrderedDict
 import sys
 import ConfigParser
+import argparse
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -85,10 +86,12 @@ class Base64DataHook(DefaultHook):
 class Config(object):
 
 	def __init__(self, prog_name, config_file = None, description = None, mandatory = False ) :
-		self.config_file = config_file
 		self.prog_name = prog_name
-		self.sections = OrderedDict()
+		self.config_file = config_file
+		self.description = description
 		self.mandatory = mandatory
+
+		self.sections = OrderedDict()
 		self._default_section = self.add_section(Section("DEFAULT"))
 
 	def add_section(self, section):
@@ -150,7 +153,8 @@ class Config(object):
 						% { "name" : name, "class" : self.__class__.__name__ } )
 
 	def get_parser(self , **kwargs):
-		parser = argparse.ArgumentParser( prog = self.prog_name , description=self.description , **kwargs)
+		return argparse.ArgumentParser( prog = self.prog_name , description=self.description , **kwargs)
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Section(object):
