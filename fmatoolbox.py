@@ -155,6 +155,17 @@ class Config(object):
 	def get_parser(self , **kwargs):
 		return argparse.ArgumentParser( prog = self.prog_name , description=self.description , **kwargs)
 
+	#def __repr__(self):
+	#	for s in self.sections.values():
+	#		pass
+	#	return " coucou"
+
+	def __str__(self):
+		res = []
+		for s in self.sections.values():
+			res.append(str(s))
+		return "\n".join(res)
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Section(object):
@@ -176,6 +187,8 @@ class Section(object):
 		for e in elt_list:
 			self.add_element(Element(e))
 
+	def count(self):
+		return len(self.elements)
 
 	def load(self, fileParser):
 		for e in self.elements.values() :
@@ -189,6 +202,14 @@ class Section(object):
 		else:
 			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
 						% { "name" : name, "class" : self.__class__.__name__ } )
+	def __str__(self):
+		res = []
+		if self.count() > 0:
+			res.append("Section %(name)s : " % self.__dict__)
+			for elt in self.elements.values():
+				if not elt.hidden :
+					res.append(" - %(name)s : %(value)s" % elt.__dict__)
+		return "\n".join(res)
 
 # ---------------------------------------------------------------------------------------------------------------------
 class ListSection(object):
