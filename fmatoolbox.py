@@ -155,15 +155,11 @@ class Config(object):
 	def get_parser(self , **kwargs):
 		return argparse.ArgumentParser( prog = self.prog_name , description=self.description , **kwargs)
 
-	#def __repr__(self):
-	#	for s in self.sections.values():
-	#		pass
-	#	return " coucou"
-
 	def __str__(self):
 		res = []
+		res.append("Configuration of %(prog_name)s : " % self.__dict__)
 		for s in self.sections.values():
-			res.append(str(s))
+			res.append("".join(s.get_representation("\t")))
 		return "\n".join(res)
 
 
@@ -202,14 +198,25 @@ class Section(object):
 		else:
 			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
 						% { "name" : name, "class" : self.__class__.__name__ } )
-	def __str__(self):
+
+
+	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
 		if self.count() > 0:
+			res.append(prefix)
 			res.append("Section %(name)s : " % self.__dict__)
+			res.append(suffix)
 			for elt in self.elements.values():
 				if not elt.hidden :
-					res.append(" - %(name)s : %(value)s" % elt.__dict__)
-		return "\n".join(res)
+					a = []
+					a.append(prefix)
+					a.append(" - %(name)s : %(value)s" % elt.__dict__)
+					res.append("".join(a))
+					res.append(suffix)
+		return res
+
+	def __str__(self):
+		return "".join(self.get_representation())
 
 # ---------------------------------------------------------------------------------------------------------------------
 class ListSection(object):
