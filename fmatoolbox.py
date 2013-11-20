@@ -53,7 +53,7 @@ if False:
 	streamHandler.setFormatter(myDebugFormat)
 
 # global logger variable
-log = logging.getLogger('linshare-cli')
+log = logging.getLogger('fmatoolbox')
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -149,6 +149,9 @@ class Config(object):
 			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
 						% { "name" : name, "class" : self.__class__.__name__ } )
 
+	def get_parser(self , **kwargs):
+		parser = argparse.ArgumentParser( prog = self.prog_name , description=self.description , **kwargs)
+
 # ---------------------------------------------------------------------------------------------------------------------
 class Section(object):
 
@@ -165,6 +168,11 @@ class Section(object):
 		self.elements[elt.name] = elt
 		return elt
 
+	def add_element_list(self, elt_list):
+		for e in elt_list:
+			self.add_element(Element(e))
+
+
 	def load(self, fileParser):
 		for e in self.elements.values() :
 			e.load(fileParser, self.name)
@@ -172,7 +180,8 @@ class Section(object):
 	def __getattr__(self, name):
 		e = self.elements.get(name)
 		if e :
-			return getattr(e, 'value')
+			return e
+			#return getattr(e, 'value')
 		else:
 			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
 						% { "name" : name, "class" : self.__class__.__name__ } )
@@ -200,6 +209,12 @@ class Element(object):
 		for h in hooks :
 			if not isinstance(h, DefaultHook):
 				raise TypeError("hook argument should be a subclass of DefaultHook")
+
+	def __repr__(self):
+		return str(self.value)
+
+	def __str__(self):
+		return str(self.value)
 
 	def post_read(self):
 		for h in self.hooks :
@@ -252,3 +267,14 @@ class Element(object):
 			else:
 				log.debug("Field not found : " + self.name)
 
+	def get_arg_parse_arguments(self):
+		ret = dict()
+		if self.required_as_arg :
+			ret["required"] = self.required_as_arg
+		if self.name :
+			ret["dest"] = self.name
+		if self.value :
+			ret["default"] = self.value
+		if self.description :
+			ret["help"] = self.description
+		return ret

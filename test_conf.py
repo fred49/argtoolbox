@@ -35,7 +35,7 @@ from ordereddict import OrderedDict
 import sys
 import ConfigParser
 
-from fmatoolbox import *
+from fmatoolbox import Base64DataHook , Config , Element , Section , myDebugFormat , streamHandler
 
 # ---------------------------------------------------------------------------------------------------------------------
 # MAIN
@@ -44,9 +44,15 @@ from fmatoolbox import *
 if __name__ == "__main__" :
 	pass
 
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
+streamHandler.setFormatter(myDebugFormat)
+
+# global logger variable
+log = logging.getLogger('fmatoolbox-config')
+
+
 c = Config("linshare-cli" , description = " simple user cli for linshare")
-#c = Config("linshare-cli" , description = " simple user cli for linshare", mandatory=True)
-#c = Config("linshare-cli" , "/home/fred/.linshare-cli.ini", description = " simple user cli for linshare")
 
 #def __init__(self, name, description = None, prefix = None, suffix = None):
 s = c.add_section(Section("server"))
@@ -55,15 +61,16 @@ s = c.add_section(Section("server"))
 s.add_element(Element('host', default = 'http://localhost:8080/linshare'))
 #s.add_element(Element('real'))
 #s.add_element(Element('user'))
-#s.add_element(Element('password', hidden = True, hooks = [ Base64DataHook(),] ))
+s.add_element(Element('password', hidden = True, hooks = [ Base64DataHook(),] ))
 #s.add_element(Element('application_name'))
-#s.add_element(Element('config_file'))
-#s.add_element(Element('server_section'))
-#s.add_element(Element('nocache'))
-s.add_element(Element('debug'))
+s.add_element(Element('config_file'))
+s.add_element(Element('server_section'))
+s.add_element(Element('nocache' , e_type=bool, default=False))
+s.add_element(Element('debug' , e_type=int, default=0))
 s.add_element(Element('verbose'))
 s.add_element(Element('toto', e_type=int, default = 8))
 #s.add_element(Element('tata', e_type=int, required = True))
+s.add_element_list([ 'real' , 'user' , 'application_name' ])
 
 s = c.get_default_section()
 s.add_element(Element('tato', e_type=int, default = 8))
@@ -73,4 +80,5 @@ c.load()
 
 print c.default.tato
 print c.server.host
+print c.server.host.get_arg_parse_arguments()
 
