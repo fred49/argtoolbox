@@ -46,10 +46,11 @@ myDebugFormat = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s:%(funcNa
 # logger handlers
 streamHandler = logging.StreamHandler(sys.stdout)
 streamHandler.setFormatter(myFormat)
-log.addHandler(streamHandler)
+# TODO : FIXME
+#log.addHandler(streamHandler)
 # debug mode
 # if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
-if False:
+if True:
 	log.setLevel(logging.DEBUG)
 	streamHandler.setFormatter(myDebugFormat)
 
@@ -85,10 +86,10 @@ class Base64DataHook(DefaultHook):
 # ---------------------------------------------------------------------------------------------------------------------
 class Config(object):
 
-	def __init__(self, prog_name, config_file = None, description = None, mandatory = False ) :
+	def __init__(self, prog_name, config_file = None, desc = None, mandatory = False ) :
 		self.prog_name = prog_name
 		self.config_file = config_file
-		self.description = description
+		self.desc = desc
 		self.mandatory = mandatory
 
 		self.sections = OrderedDict()
@@ -107,19 +108,19 @@ class Config(object):
 		return self._default_section
 
 	def load(self):
-		fileParser = ConfigParser.SafeConfigParser()
+		self.fileParser = ConfigParser.SafeConfigParser()
 		discoveredFileList = []
 		if self.config_file :
 			if isinstance(self.config_file , str):
-				discoveredFileList = fileParser.read(self.config_file)
+				discoveredFileList = self.fileParser.read(self.config_file)
 			else:
-				discoveredFileList = fileParser.readfp(self.config_file, "file descriptor")
+				discoveredFileList = self.fileParser.readfp(self.config_file, "file descriptor")
 		else:
 			defaultFileList = []
 			defaultFileList.append(self.prog_name + ".cfg")
 			defaultFileList.append(os.path.expanduser('~/.' + self.prog_name + '.cfg'))
 			defaultFileList.append('/etc/' + self.prog_name + '.cfg')
-			discoveredFileList = fileParser.read(defaultFileList)
+			discoveredFileList = self.fileParser.read(defaultFileList)
 
 		log.debug("discoveredFileList: " + str(discoveredFileList))
 
@@ -128,16 +129,24 @@ class Config(object):
 			log.error(msg)
 			raise EnvironmentError(msg)
 
-		#print fileParser.items("DEFAULT")
+		#print self.fileParser.items("DEFAULT")
+		log.debug("loading configuration ...")
 		for s in self.sections.values():
 			log.debug("loading section : " + s.name)
-			s.load(fileParser)
+			s.load(self.fileParser)
+		log.debug("configuration loaded.")
 
 	def write_default_config_file(self):
 		pass
 
 	def reload(self, args):
-		pass
+		if args.config_file :
+			self.fileParser.read(args.config_file)
+			log.debug("reloading configuration ...")
+			for s in self.sections.values():
+				log.debug("loading section : " + s.name)
+				s.load(self.fileParser)
+			log.debug("configuration reloaded.")
 
 	def push(self, args):
 		pass
@@ -153,7 +162,7 @@ class Config(object):
 						% { "name" : name, "class" : self.__class__.__name__ } )
 
 	def get_parser(self , **kwargs):
-		return argparse.ArgumentParser( prog = self.prog_name , description=self.description , **kwargs)
+		return argparse.ArgumentParser( prog = self.prog_name , description=self.desc, **kwargs)
 
 	def __str__(self):
 		res = []
@@ -166,10 +175,10 @@ class Config(object):
 # ---------------------------------------------------------------------------------------------------------------------
 class Section(object):
 
-	def __init__(self, name, description = None, prefix = None, suffix = None):
+	def __init__(self, name, desc = None, prefix = None, suffix = None):
 		self.elements = OrderedDict()
 		self.name = name
-		self.description = description
+		self.desc = desc
 		self.prefix = prefix
 		self.suffix = suffix
 
@@ -221,19 +230,19 @@ class Section(object):
 # ---------------------------------------------------------------------------------------------------------------------
 class ListSection(object):
 
-	def __init__(self, name, description = None, prefix = None, suffix = None):
+	def __init__(self, name, desc = None, prefix = None, suffix = None):
 		pass
 # ---------------------------------------------------------------------------------------------------------------------
 class Element(object):
-	def __init__(self, name, e_type = str, required = False, default = None, required_as_arg = False, description = None, hooks = [ DefaultHook() ], hidden = False ):
+	def __init__(self, name, e_type = str, required = False, default = None, required_as_arg = False, desc = None, hooks = [ DefaultHook() ], hidden = False ):
 		self.name = name
 		self.e_type = e_type
 		self.required = required
 		self.default = default
 		self.required_as_arg = required_as_arg
-		self.description = description
-		self.description_for_config = None
-		self.description_for_argparse = None
+		self.desc = desc
+		self.desc_for_config = None
+		self.desc_for_argparse = None
 		self.value = None
 		self.hidden = hidden
 		self.hooks = hooks
@@ -307,6 +316,48 @@ class Element(object):
 			ret["dest"] = self.name
 		if self.value :
 			ret["default"] = self.value
-		if self.description :
-			ret["help"] = self.description
+		if self.desc :
+			ret["help"] = self.desc
+		print str(ret)
+		#log.info(str(ret))
 		return ret
+
+
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+class DefaultCompleter(object):
+	def __init__(self , config, func_name = "complete"):
+		self.config = config
+		self.func_name = func_name
+
+	def __call__(self, prefix, **kwargs):
+		import argcomplete
+		from argcomplete import debug
+		from argcomplete import warn
+		try:
+			debug("\n-----------------------------")
+			debug(str(kwargs))
+			for i , j in kwargs.items() :
+				debug(i)
+				debug("\t" + str(j))
+
+			args = kwargs.get('parsed_args')
+
+			# reloading configuration with optional arguments
+			self.config.reload(args)
+			# using values stored in config file to filled in undefined args.
+			# undefind args will be filled in with default values stored into the pref file.
+			self.config.push(args)
+			# getting form args the current Command and looking for a method called by default 'complete'. 
+			# The method name is specified  by func_name
+			fn = getattr(args.__func__, self.func_name, None)
+			warn("ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd")
+			if fn:
+				return fn(args, prefix)
+
+		except Exception as e:
+			debug("\nERROR:An exception was caught :" + str(e) + "\n")
+
+
