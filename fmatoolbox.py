@@ -50,7 +50,7 @@ streamHandler.setFormatter(myFormat)
 #log.addHandler(streamHandler)
 # debug mode
 # if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
-if True:
+if False:
 	log.setLevel(logging.DEBUG)
 	streamHandler.setFormatter(myDebugFormat)
 
@@ -148,8 +148,15 @@ class Config(object):
 				s.load(self.fileParser)
 			log.debug("configuration reloaded.")
 
-	def push(self, args):
-		pass
+#	def reload(self, args):
+#		if args.server_section or args.config :
+#			server_section_name = self.section
+#			if args.server_section :
+#				server_section_name += '-' + str(args.server_section)
+#
+#			myPref = MyPref(self.filepath, server_section_name, expanduser=True, prefix = "\t", mandatory = False)
+#			self.linshare = myPref(self.fields)
+#			self.decode_password()
 
 	def __getattr__(self, name):
 		if name.lower() == "default":
@@ -170,6 +177,21 @@ class Config(object):
 		for s in self.sections.values():
 			res.append("".join(s.get_representation("\t")))
 		return "\n".join(res)
+
+
+#	def write_default_config_file(self):
+#
+#		log = logging.getLogger('linshare-cli')
+#		filepath = os.path.expanduser(self.filepath)
+#		if os.path.isfile(filepath) :
+#			log.error("Can not generate the pref file because it already exists. : " + filepath)
+#			return 1
+#		else :
+#			with open(filepath, 'w') as f:
+#				f.write("[" + self.section + "]\n")
+#				for field in self.fields:
+#					f.write(field + "=\n")
+#
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -318,7 +340,7 @@ class Element(object):
 			ret["default"] = self.value
 		if self.desc :
 			ret["help"] = self.desc
-		print str(ret)
+		#print str(ret)
 		#log.info(str(ret))
 		return ret
 
@@ -344,16 +366,21 @@ class DefaultCompleter(object):
 				debug("\t" + str(j))
 
 			args = kwargs.get('parsed_args')
+			parser = kwargs.get('parser')
+			#a = parser.parse_known_args()
+			a= args
+			debug("\n------ coucou -----------------------")
+			debug(str(a))
+
 
 			# reloading configuration with optional arguments
 			self.config.reload(args)
 			# using values stored in config file to filled in undefined args.
 			# undefind args will be filled in with default values stored into the pref file.
-			self.config.push(args)
+			#self.config.push(args)
 			# getting form args the current Command and looking for a method called by default 'complete'. 
 			# The method name is specified  by func_name
 			fn = getattr(args.__func__, self.func_name, None)
-			warn("ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd")
 			if fn:
 				return fn(args, prefix)
 
