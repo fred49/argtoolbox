@@ -273,11 +273,8 @@ class Element(object):
 			if not isinstance(h, DefaultHook):
 				raise TypeError("hook argument should be a subclass of DefaultHook")
 
-	def __repr__(self):
-		return str(self.value)
-
 	def __str__(self):
-		return str(self.value)
+		return self.name + " : " + str(self.value)
 
 	def post_read(self):
 		for h in self.hooks :

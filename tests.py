@@ -42,6 +42,10 @@ import unittest
 import StringIO
 import io
 
+log.addHandler(streamHandler)
+log.setLevel(logging.FATAL)
+
+
 
 class TestSequenceFunctions(unittest.TestCase):
 
