@@ -64,7 +64,6 @@ class DefaultHook(object):
 		pass
 
 	def __call__(self, elt):
-		#plugin ? hook ? post function ? ex decode pwd
 		pass
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -193,7 +192,6 @@ class Config(object):
 #					f.write(field + "=\n")
 #
 
-
 # ---------------------------------------------------------------------------------------------------------------------
 class Section(object):
 
@@ -218,18 +216,23 @@ class Section(object):
 		return len(self.elements)
 
 	def load(self, fileParser):
+		a = []
+		if self.prefix :
+			a.append(self.prefix)
+		a.append(self.name)
+		if self.suffix:
+			a.append(self.suffix)
+		section = "-".join(a)
 		for e in self.elements.values() :
-			e.load(fileParser, self.name)
+			e.load(fileParser, section)
 
 	def __getattr__(self, name):
 		e = self.elements.get(name)
 		if e :
 			return e
-			#return getattr(e, 'value')
 		else:
 			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
 						% { "name" : name, "class" : self.__class__.__name__ } )
-
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
@@ -341,14 +344,9 @@ class Element(object):
 		#log.info(str(ret))
 		return ret
 
-
-
-
-
 # ---------------------------------------------------------------------------------------------------------------------
 class DefaultCompleter(object):
-	def __init__(self , config, func_name = "complete"):
-		self.config = config
+	def __init__(self , func_name = "complete"):
 		self.func_name = func_name
 
 	def __call__(self, prefix, **kwargs):
@@ -366,15 +364,9 @@ class DefaultCompleter(object):
 			parser = kwargs.get('parser')
 			#a = parser.parse_known_args()
 			a= args
-			debug("\n------ coucou -----------------------")
+			debug("\n-----------------------------")
 			debug(str(a))
 
-
-			# reloading configuration with optional arguments
-			self.config.reload(args)
-			# using values stored in config file to filled in undefined args.
-			# undefind args will be filled in with default values stored into the pref file.
-			#self.config.push(args)
 			# getting form args the current Command and looking for a method called by default 'complete'. 
 			# The method name is specified  by func_name
 			fn = getattr(args.__func__, self.func_name, None)
@@ -383,5 +375,3 @@ class DefaultCompleter(object):
 
 		except Exception as e:
 			debug("\nERROR:An exception was caught :" + str(e) + "\n")
-
-

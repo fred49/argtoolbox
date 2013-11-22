@@ -47,7 +47,7 @@ log.setLevel(logging.FATAL)
 
 
 
-class TestSequenceFunctions(unittest.TestCase):
+class TestDefaultSection(unittest.TestCase):
 
     def setUp(self):
 	sample_config = """[DEFAULT]
