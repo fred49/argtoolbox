@@ -59,7 +59,7 @@ elt_type_not_base64=cVjcmV0
 elt_hidden="do not show"
 
 \n"""
-	self.c = Config("linshare-cli" , config_file = io.BytesIO(sample_config), description = " simple user cli for linshare")
+	self.c = Config("linshare-cli" , config_file = io.BytesIO(sample_config), desc= " simple user cli for linshare")
 	self.s = self.c.get_default_section()
 
     def test_required(self):
@@ -77,7 +77,7 @@ elt_hidden="do not show"
     def test_no_attribute(self):
 	self.s.add_element(Element('elt_type_int', e_type=int,  required=True))
 	self.c.load()
-	self.assertEqual(5, self.c.default.elt_type_int)
+	self.assertEqual(5, self.c.default.elt_type_int.value)
 	def raiseAttributeErrorException():
 		self.c.default.elt_missing
         self.assertRaises(AttributeError, raiseAttributeErrorException)
@@ -85,37 +85,37 @@ elt_hidden="do not show"
     def test_not_present(self):
 	self.s.add_element(Element('elt_missing'))
 	self.c.load()
-	self.assertEqual(None, self.c.default.elt_missing)
+	self.assertEqual(None, self.c.default.elt_missing.value)
 
     def test_not_present_with_default(self):
 	self.s.add_element(Element('elt_missing', e_type=int, default = 8))
 	self.c.load()
-	self.assertEqual(8, self.c.default.elt_missing)
+	self.assertEqual(8, self.c.default.elt_missing.value)
 
     def test_type_int(self):
 	self.s.add_element(Element('elt_type_int', e_type=int))
 	self.c.load()
-	self.assertEqual(5, self.c.default.elt_type_int)
+	self.assertEqual(5, self.c.default.elt_type_int.value)
 
     def test_type_str(self):
 	self.s.add_element(Element('elt_type_str'))
 	self.c.load()
-	self.assertEqual("bbb", self.c.default.elt_type_str)
+	self.assertEqual("bbb", self.c.default.elt_type_str.value)
 
     def test_type_bool(self):
 	self.s.add_element(Element('elt_type_bool', e_type=bool))
 	self.c.load()
-	self.assertTrue(self.c.default.elt_type_bool)
+	self.assertTrue(self.c.default.elt_type_bool.value)
 
     def test_type_float(self):
 	self.s.add_element(Element('elt_type_float', e_type=float))
 	self.c.load()
-	self.assertEqual(1.00009, self.c.default.elt_type_float)
+	self.assertEqual(1.00009, self.c.default.elt_type_float.value)
 
     def test_hook_base64(self):
 	self.s.add_element(Element('elt_type_base64', hooks = [ Base64DataHook(),] ))
 	self.c.load()
-	self.assertEqual("secret", self.c.default.elt_type_base64)
+	self.assertEqual("secret", self.c.default.elt_type_base64.value)
 
     def test_hook_not_base64(self):
 	self.s.add_element(Element('elt_type_not_base64', hooks = [ Base64DataHook(),] ))
@@ -124,7 +124,7 @@ elt_hidden="do not show"
     def test_hook_not_base64_2(self):
 	self.s.add_element(Element('elt_type_not_base64', hooks = [ Base64DataHook(True),] ))
 	self.c.load()
-	self.assertEqual("cVjcmV0", self.c.default.elt_type_not_base64)
+	self.assertEqual("cVjcmV0", self.c.default.elt_type_not_base64.value)
 
     def test_hidden(self):
 	self.s.add_element(Element('elt_hidden', hidden = True ))
@@ -138,7 +138,7 @@ elt_hidden="do not show"
     def test_without_default_without_value_str(self):
 	self.s.add_element(Element('elt_no_value'))
         self.assertRaises(ValueError, self.c.load)
-	self.assertEqual(None, self.c.default.elt_no_value)
+	self.assertEqual(None, self.c.default.elt_no_value.value)
 
     def test_without_default_without_value_int(self):
 	self.s.add_element(Element('elt_no_value', e_type=int))
