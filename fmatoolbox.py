@@ -50,7 +50,7 @@ streamHandler.setFormatter(myFormat)
 #log.addHandler(streamHandler)
 # debug mode
 # if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
-if False:
+if True:
 	log.setLevel(logging.DEBUG)
 	streamHandler.setFormatter(myDebugFormat)
 
@@ -139,13 +139,13 @@ class Config(object):
 		pass
 
 	def reload(self, args):
+		log.debug("reloading configuration ...")
 		if args.config_file :
 			self.fileParser.read(args.config_file)
-			log.debug("reloading configuration ...")
-			for s in self.sections.values():
-				log.debug("loading section : " + s.name)
-				s.load(self.fileParser)
-			log.debug("configuration reloaded.")
+		for s in self.sections.values():
+			log.debug("loading section : " + s.name)
+			s.load(self.fileParser)
+		log.debug("configuration reloaded.")
 
 #	def reload(self, args):
 #		if args.server_section or args.config :
@@ -168,7 +168,9 @@ class Config(object):
 						% { "name" : name, "class" : self.__class__.__name__ } )
 
 	def get_parser(self , **kwargs):
-		return argparse.ArgumentParser( prog = self.prog_name , description=self.desc, **kwargs)
+		parser = argparse.ArgumentParser( prog = self.prog_name , description=self.desc, **kwargs)
+		parser.add_argument('-c', '--config-file',	action="store", help="Other configuration file.")
+		return parser
 
 	def __str__(self):
 		res = []
@@ -308,7 +310,14 @@ class Element(object):
 					data = self.default
 
 			log.debug("field found : '%(name)s' , value : '%(data)s', type : '%(e_type)s'" , { "name": self.name , "data": data , "e_type" : self.e_type })
-			data = self.e_type(data)
+			try:
+				data = self.e_type(data)
+			except  ValueError as e:
+				msg = "The current field '%(name)s' was present, but the required type is : %(e_type)s instead of : %(c_type)s."  % { "name": self.name , "e_type" : self.e_type , "c_type": type(data) }
+				log.error(msg)
+				msg = "Error message : %(msg)s." % { "msg": str(e) }
+				log.error(msg)
+				raise ValueError(msg)
 
 			# happens only when the current field is present, type is string, but value is ''
 			if not data:
@@ -340,8 +349,6 @@ class Element(object):
 			ret["default"] = self.value
 		if self.desc :
 			ret["help"] = self.desc
-		#print str(ret)
-		#log.info(str(ret))
 		return ret
 
 # ---------------------------------------------------------------------------------------------------------------------
