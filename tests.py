@@ -117,16 +117,16 @@ elt_hidden="do not show"
 	self.assertEqual(1.00009, self.c.default.elt_type_float.value)
 
     def test_hook_base64(self):
-	self.s.add_element(Element('elt_type_base64', hooks = [ Base64DataHook(),] ))
+	self.s.add_element(Element('elt_type_base64', hooks = [ Base64ElementHook(),] ))
 	self.c.load()
 	self.assertEqual("secret", self.c.default.elt_type_base64.value)
 
     def test_hook_not_base64(self):
-	self.s.add_element(Element('elt_type_not_base64', hooks = [ Base64DataHook(),] ))
+	self.s.add_element(Element('elt_type_not_base64', hooks = [ Base64ElementHook(),] ))
         self.assertRaises(TypeError, self.c.load)
 
     def test_hook_not_base64_2(self):
-	self.s.add_element(Element('elt_type_not_base64', hooks = [ Base64DataHook(True),] ))
+	self.s.add_element(Element('elt_type_not_base64', hooks = [ Base64ElementHook(True),] ))
 	self.c.load()
 	self.assertEqual("cVjcmV0", self.c.default.elt_type_not_base64.value)
 

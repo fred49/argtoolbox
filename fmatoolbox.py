@@ -66,7 +66,7 @@ class DefaultHook(object):
 		pass
 
 # ---------------------------------------------------------------------------------------------------------------------
-class Base64DataHook(DefaultHook):
+class Base64ElementHook(DefaultHook):
 	def __init__(self, warning = False):
 		self.warning = warning
 
@@ -80,6 +80,26 @@ class Base64DataHook(DefaultHook):
 					log.warn("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt.name })
 				else :
 					raise e
+
+# ---------------------------------------------------------------------------------------------------------------------
+class SectionHook(object):
+	def __init__(self, section, attribute, opt_name):
+		if not isinstance(section, Section):
+			raise TypeError("First argument should be a subclass of Section.")
+		self.section = section
+
+		if not isinstance(attribute, str):
+			raise TypeError("Second argument should be a string, attribute name.")
+		self.attribute = attribute
+
+		if not isinstance(opt_name, str):
+			raise TypeError("Third argument should be a string, option name.")
+		self.opt_name = opt_name
+
+	def __call__(self , args):
+		value = getattr(args, self.opt_name)
+		if value != None :
+			setattr(self.section , self.attribute, value)
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Config(object):
@@ -99,9 +119,6 @@ class Config(object):
 			raise TypeError("argument should be a subclass of Section")
 		self.sections[section.name] = section
 		return section
-
-	def get_section(self, section):
-		return self.sections.get(section)
 
 	def get_default_section(self):
 		return self._default_section
@@ -131,16 +148,39 @@ class Config(object):
 		#print self.fileParser.items("DEFAULT")
 		log.debug("loading configuration ...")
 		for s in self.sections.values():
-			log.debug("loading section : " + s.name)
+			log.debug("loading section : " + s.get_section_name())
 			s.load(self.fileParser)
 		log.debug("configuration loaded.")
 
-	def reload(self, args):
+	def get_parser(self , **kwargs):
+		self.parser = argparse.ArgumentParser( prog = self.prog_name , description=self.desc, add_help = False,  **kwargs)
+		# help is removed because parser.parse_known_args() show help, often partial help.
+		# help action will be added during reloading step for parser.parse_args()
+		self.parser.add_argument('-c', '--config-file',	action="store", help="Other configuration file.")
+		return self.parser
+
+	def reload(self , hooks = None):
+		# Parsing the command line looking for the previous options like configuration file name or server section. Extra arguments will be store into argv.
+		args , argv = self.parser.parse_known_args()
+
+		if hooks != None :
+			if isinstance(hooks, list) :
+				for h in hooks :
+					if isinstance(h, SectionHook):
+						h(args)
+			else:
+				if isinstance(hooks, SectionHook):
+					hooks(args)
+
+		# After the first argument parsing, for configuration reloading, we can add the help action.
+		self.parser.add_argument('-h', '--help',		action='help', 		default=argparse.SUPPRESS, help='show this help message and exit')
+
+		# Reloading
 		log.debug("reloading configuration ...")
 		if args.config_file :
 			self.fileParser.read(args.config_file)
 		for s in self.sections.values():
-			log.debug("loading section : " + s.name)
+			log.debug("loading section : " + s.get_section_name())
 			s.load(self.fileParser)
 		log.debug("configuration reloaded.")
 
@@ -153,11 +193,6 @@ class Config(object):
 		else:
 			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
 						% { "name" : name, "class" : self.__class__.__name__ } )
-
-	def get_parser(self , **kwargs):
-		self.parser = argparse.ArgumentParser( prog = self.prog_name , description=self.desc, **kwargs)
-		self.parser.add_argument('-c', '--config-file',	action="store", help="Other configuration file.")
-		return self.parser
 
 	def __str__(self):
 		res = []
@@ -176,7 +211,7 @@ class Config(object):
 				f.write("\n\n")
 
 			for s in self.sections.values():
-				log.debug("loading section : " + s.name)
+				log.debug("loading section : " + s.get_section_name())
 				s.write_config_file(f , comments)
 		log.debug("config file generation complete : " + str(output))
 
@@ -203,14 +238,17 @@ class Section(object):
 	def count(self):
 		return len(self.elements)
 
-	def load(self, fileParser):
+	def get_section_name(self):
 		a = []
 		if self.prefix :
 			a.append(self.prefix)
 		a.append(self.name)
 		if self.suffix:
 			a.append(self.suffix)
-		section = "-".join(a)
+		return "-".join(a)
+
+	def load(self, fileParser):
+		section = self.get_section_name()
 		for e in self.elements.values() :
 			e.load(fileParser, section)
 
@@ -437,7 +475,6 @@ class SampleProgram(object):
 		self.config = config
 
 	def __call__(self):
-		log = logging.getLogger()
 		if not self.parser :
 			log.error("Parser attribute is not set. Call get_parser() method or create your own parser.")
 			return False
