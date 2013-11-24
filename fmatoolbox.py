@@ -38,7 +38,8 @@ import argparse
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-log = logging.getLogger()
+# global logger variable
+log = logging.getLogger('fmatoolbox')
 log.setLevel(logging.INFO)
 # logger formats
 myFormat = logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
@@ -46,16 +47,14 @@ myDebugFormat = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s:%(funcNa
 # logger handlers
 streamHandler = logging.StreamHandler(sys.stdout)
 streamHandler.setFormatter(myFormat)
-# TODO : FIXME
-#log.addHandler(streamHandler)
+
 # debug mode
 # if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
-if True:
+if False:
+	log.addHandler(streamHandler)
 	log.setLevel(logging.DEBUG)
 	streamHandler.setFormatter(myDebugFormat)
 
-# global logger variable
-log = logging.getLogger('fmatoolbox')
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -179,7 +178,7 @@ class Config(object):
 			for s in self.sections.values():
 				log.debug("loading section : " + s.name)
 				s.write_config_file(f , comments)
-		log.info("config file generation complete : " + str(output))
+		log.debug("config file generation complete : " + str(output))
 
 # ---------------------------------------------------------------------------------------------------------------------
 class Section(object):
@@ -266,13 +265,29 @@ class ListSection(object):
 		pass
 # ---------------------------------------------------------------------------------------------------------------------
 class Element(object):
-	def __init__(self, name, e_type = str, required = False, default = None, conf_hidden = False, desc = None, hooks = [ DefaultHook() ], hidden = False ):
+	""" coucouc """
+	def __init__(self, name, e_type = str, required = False, default = None, conf_hidden = False, conf_required = False, desc = None, hooks = [ DefaultHook() ], hidden = False ):
+		"""name : name of the attribute store into the configuration file.
+e_type :	Data type of the attribute.
+conf_required :	The current attribute must be present in the configuration file.
+required :	The current attribute must be present into command line arguments except if it is present into configuration file.
+default :	Default value used if the attribute is not set in configuration file.
+		This value is also used during configuration file generation.
+		ex: 'attribute = $default_value' or  ';attribute = $default_value' if this attribute is mandatory.
+
+desc :		Description used into the configuration file and argparse.
+conf_hidden :	The current attribute will not be used during configuration file generation.
+hidden :	The current attribute will not be print on console (ex password)
+hooks :
+"""
+
 		self.name = name
 		self.e_type = e_type
 		self.required = required
 		self.default = default
 		self.desc = desc
 		self.conf_hidden = conf_hidden
+		self.conf_required  = conf_required
 		self.desc_for_config = None
 		self.desc_for_argparse = None
 		self.value = None
@@ -304,7 +319,7 @@ class Element(object):
 		try:
 			data = fileParser.get( section_name, self.name)
 			log.debug("field found : " + self.name )
-			if self.required :
+			if self.conf_required :
 				if not data :
 					msg = "The required field '%(name)s' was missing from the config file." % { "name": self.name }
 					log.error(msg)
@@ -333,12 +348,12 @@ class Element(object):
 			self.value = data
 
 		except ConfigParser.NoOptionError :
-			if self.required :
+			if self.conf_required :
 				msg = "The required field " + self.name  + " was missing from the config file."
 				log.error(msg)
 				raise ValueError(msg)
 
-			if self.default :
+			if self.default != None :
 				self.value = self.default
 				log.debug("Field not found : " + self.name + ", default value : " + str(self.default))
 			else:
@@ -347,10 +362,12 @@ class Element(object):
 	def get_arg_parse_arguments(self):
 		ret = dict()
 		if self.required :
-			ret["required"] = self.required
-		if self.name :
-			ret["dest"] = self.name
-		if self.value :
+			if self.value != None :
+				ret["default"] = self.value
+			else:
+				ret["required"] = True
+		ret["dest"] = self.name
+		if self.value != None :
 			ret["default"] = self.value
 		if self.desc :
 			ret["help"] = self.desc
@@ -373,7 +390,7 @@ class Element(object):
 				f.write("\n")
 
 
-		if not self.required:
+		if not self.conf_required:
 			f.write(";")
 		f.write(self.name)
 		f.write("=")
