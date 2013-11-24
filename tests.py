@@ -67,19 +67,19 @@ elt_hidden="do not show"
 	self.s = self.c.get_default_section()
 
     def test_required(self):
-	self.s.add_element(Element('elt_missing', required=True))
+	self.s.add_element(Element('elt_missing', conf_required=True))
         self.assertRaises(ValueError, self.c.load)
 
     def test_required_without_value(self):
-	self.s.add_element(Element('elt_required', default="plop", required=True))
+	self.s.add_element(Element('elt_required', default="plop", conf_required=True))
         self.assertRaises(ValueError, self.c.load)
 
     def test_required_without_value_without_default(self):
-	self.s.add_element(Element('elt_required', required=True))
+	self.s.add_element(Element('elt_required', conf_required=True))
         self.assertRaises(ValueError, self.c.load)
 
     def test_no_attribute(self):
-	self.s.add_element(Element('elt_type_int', e_type=int,  required=True))
+	self.s.add_element(Element('elt_type_int', e_type=int,  conf_required=True))
 	self.c.load()
 	self.assertEqual(5, self.c.default.elt_type_int.value)
 	def raiseAttributeErrorException():
