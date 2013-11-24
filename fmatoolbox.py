@@ -377,8 +377,8 @@ class Element(object):
 			f.write(";")
 		f.write(self.name)
 		f.write("=")
-		if self.default:
-			f.write(self.default)
+		if self.default != None :
+			f.write(str(self.default))
 		f.write("\n")
 
 # ---------------------------------------------------------------------------------------------------------------------
