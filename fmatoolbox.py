@@ -437,6 +437,29 @@ hooks :
 		f.write("\n")
 
 # ---------------------------------------------------------------------------------------------------------------------
+class DefaultCommand(object):
+
+	def __init__(self):
+		self.log = logging.getLogger('fmatoolbox' + "." + str(self.__class__.__name__.lower()))
+
+	def __call__(self, args):
+		# suppress __func__ object ang password just for display
+		dict_tmp=copy.copy(args)
+		delattr(dict_tmp, "__func__")
+		#delattr(dict_tmp, "password")
+		if hasattr(dict_tmp, "password"):
+			setattr(dict_tmp, "password" , "xxx")
+		self.log.debug("Namespace : begin :")
+		for i in dict_tmp.__dict__:
+			self.log.debug(i + " : " + str(getattr(dict_tmp, i)))
+		self.log.debug("Namespace : end.")
+
+	def complete(self, args,  prefix):
+		"""Auto complete method, args is comming from argparse and prefix is the input data from command line.
+		You must return a list."""
+                return []
+
+# ---------------------------------------------------------------------------------------------------------------------
 class DefaultCompleter(object):
 	def __init__(self , func_name = "complete"):
 		self.func_name = func_name
@@ -467,6 +490,7 @@ class DefaultCompleter(object):
 
 		except Exception as e:
 			debug("\nERROR:An exception was caught :" + str(e) + "\n")
+
 # ---------------------------------------------------------------------------------------------------------------------
 class SampleProgram(object):
 
@@ -475,10 +499,6 @@ class SampleProgram(object):
 		self.config = config
 
 	def __call__(self):
-		if not self.parser :
-			log.error("Parser attribute is not set. Call get_parser() method or create your own parser.")
-			return False
-
 		# integration with argcomplete python module (bash completion)
 		try:
 			import argcomplete
@@ -490,7 +510,8 @@ class SampleProgram(object):
 		args = self.parser.parse_args()
 
 		if getattr(args, 'debug'):
-			log.setLevel(logging.DEBUG)
+			llog = logging.getLogger()
+			llog.setLevel(logging.DEBUG)
 			streamHandler.setFormatter(myDebugFormat)
 			print "------------- config ------------------"
 			print self.config
@@ -505,11 +526,11 @@ class SampleProgram(object):
 				args.__func__(args)
 				return True
 			except ValueError as a :
-				log.error("ValueError : " + str(a))
+				llog.error("ValueError : " + str(a))
 			except KeyboardInterrupt as a :
-				log.warn("Keyboard interruption detected.")
+				llog.warn("Keyboard interruption detected.")
 			except Exception as a :
-				log.error("unexcepted error : " + str(a))
+				llog.error("unexcepted error : " + str(a))
 			return False
 
 # ---------------------------------------------------------------------------------------------------------------------
