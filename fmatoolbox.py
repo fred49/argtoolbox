@@ -84,7 +84,7 @@ class Base64ElementHook(DefaultHook):
 # ---------------------------------------------------------------------------------------------------------------------
 class SectionHook(object):
 	def __init__(self, section, attribute, opt_name):
-		if not isinstance(section, Section):
+		if not issubclass(section.__class__, AbstractSection):
 			raise TypeError("First argument should be a subclass of Section.")
 		self.section = section
 
@@ -115,7 +115,7 @@ class Config(object):
 		self.parser = None
 
 	def add_section(self, section):
-		if not isinstance(section, Section):
+		if not issubclass(section.__class__, AbstractSection):
 			raise TypeError("argument should be a subclass of Section")
 		self.sections[section.name] = section
 		return section
@@ -216,14 +216,53 @@ class Config(object):
 		log.debug("config file generation complete : " + str(output))
 
 # ---------------------------------------------------------------------------------------------------------------------
-class Section(object):
+class AbstractSection(object):
 
 	def __init__(self, name, desc = None, prefix = None, suffix = None):
-		self.elements = OrderedDict()
 		self.name = name
 		self.desc = desc
 		self.prefix = prefix
 		self.suffix = suffix
+
+	def get_section_name(self):
+		a = []
+		if self.prefix :
+			a.append(self.prefix)
+		a.append(self.name)
+		if self.suffix:
+			a.append(self.suffix)
+		return "-".join(a)
+
+	def load(self, fileParser):
+		raise NotImplemented("You must implement this method.")
+
+	def get_representation(self , prefix = "" , suffix = "\n"):
+		res = []
+		res.append(prefix)
+		res.append("Section %(name)s : " % self.__dict__)
+		res.append(suffix)
+		return res
+
+	def __str__(self):
+		return "".join(self.get_representation())
+
+	def write_config_file(self , f , comments):
+		if comments :
+			f.write("#####################################\n")
+			f.write("# Section : " + self.name + "\n")
+			f.write("#####################################\n")
+		f.write("[" + self.name + "]\n")
+		if self.desc and comments:
+			f.write("# Description : ")
+			f.write(self.desc)
+			f.write("\n")
+
+# ---------------------------------------------------------------------------------------------------------------------
+class Section(AbstractSection):
+
+	def __init__(self, *args, **kwargs):
+		super(Section, self).__init__(*args, **kwargs)
+		self.elements = OrderedDict()
 
 	def add_element(self, elt):
 		if not isinstance(elt, Element):
@@ -237,15 +276,6 @@ class Section(object):
 
 	def count(self):
 		return len(self.elements)
-
-	def get_section_name(self):
-		a = []
-		if self.prefix :
-			a.append(self.prefix)
-		a.append(self.name)
-		if self.suffix:
-			a.append(self.suffix)
-		return "-".join(a)
 
 	def load(self, fileParser):
 		section = self.get_section_name()
@@ -275,35 +305,50 @@ class Section(object):
 					res.append(suffix)
 		return res
 
-	def __str__(self):
-		return "".join(self.get_representation())
-
 	def write_config_file(self , f , comments):
 		if len(self.elements) < 1 :
 			return
-
-		if comments :
-			f.write("#####################################\n")
-			f.write("# Section : " + self.name + "\n")
-			f.write("#####################################\n")
-		f.write("[" + self.name + "]\n")
-		if self.desc and comments:
-			f.write("# Description : ")
-			f.write(self.desc)
-			f.write("\n")
+		super(Section,self).write_config_file(f, comments)
 
 		for e in self.elements.values() :
 			e.write_config_file(f , comments)
 		f.write("\n")
 
 # ---------------------------------------------------------------------------------------------------------------------
-class ListSection(object):
+class ListSection(AbstractSection):
+	def __init__(self, *args, **kwargs):
+		super(ListSection, self).__init__(*args, **kwargs)
+		self.elements = OrderedDict()
 
-	def __init__(self, name, desc = None, prefix = None, suffix = None):
-		pass
+	def load(self, fileParser):
+		for key in [ item for item in fileParser.options(self.get_section_name()) if item not in fileParser.defaults().keys() ]:
+			self.elements[key] = fileParser.get(self.get_section_name(), key)
+
+	def get_representation(self , prefix = "" , suffix = "\n"):
+		res = []
+		res.append(prefix)
+		res.append("Section %(name)s : " % self.__dict__)
+		res.append(suffix)
+		for key, val in self.elements.items():
+			a = []
+			a.append(prefix)
+			a.append(" - " + str(key) + " : " + str(val))
+			res.append("".join(a))
+			res.append(suffix)
+		return res
+
+	def __getattr__(self, name):
+
+		e = self.elements.get(name)
+		if e != None :
+			return e
+		else:
+			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
+						% { "name" : name, "class" : self.__class__.__name__ } )
+
 # ---------------------------------------------------------------------------------------------------------------------
 class Element(object):
-	""" coucouc """
+
 	def __init__(self, name, e_type = str, required = False, default = None, conf_hidden = False, conf_required = False, desc = None, hooks = [ DefaultHook() ], hidden = False ):
 		"""name : name of the attribute store into the configuration file.
 e_type :	Data type of the attribute.
@@ -355,6 +400,7 @@ hooks :
 
 	def _load(self, fileParser, section_name):
 		try:
+			# 'get', 'getboolean', 'getfloat', 'getint'
 			data = fileParser.get( section_name, self.name)
 			log.debug("field found : " + self.name )
 			if self.conf_required :
@@ -526,11 +572,11 @@ class SampleProgram(object):
 				args.__func__(args)
 				return True
 			except ValueError as a :
-				llog.error("ValueError : " + str(a))
+				log.error("ValueError : " + str(a))
 			except KeyboardInterrupt as a :
-				llog.warn("Keyboard interruption detected.")
+				log.warn("Keyboard interruption detected.")
 			except Exception as a :
-				llog.error("unexcepted error : " + str(a))
+				log.error("unexcepted error : " + str(a))
 			return False
 
 # ---------------------------------------------------------------------------------------------------------------------
