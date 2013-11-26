@@ -39,21 +39,23 @@ import argparse
 
 # ---------------------------------------------------------------------------------------------------------------------
 # global logger variable
-log = logging.getLogger('fmatoolbox')
-log.setLevel(logging.INFO)
+#log = logging.getLogger('fmatoolbox')
+#log.setLevel(logging.INFO)
+#log.setLevel(logging.DEBUG)
 # logger formats
-myFormat = logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
-myDebugFormat = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s", "%H:%M:%S")
+default_logging_format = logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
+debug_logging_format = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s", "%H:%M:%S")
 # logger handlers
 streamHandler = logging.StreamHandler(sys.stdout)
-streamHandler.setFormatter(myFormat)
+streamHandler.setFormatter(default_logging_format)
 
 # debug mode
 # if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
 if False:
+#if True:
 	log.addHandler(streamHandler)
 	log.setLevel(logging.DEBUG)
-	streamHandler.setFormatter(myDebugFormat)
+	streamHandler.setFormatter(debug_logging_format)
 
 
 
@@ -77,6 +79,7 @@ class Base64ElementHook(DefaultHook):
 				elt.value = data
 			except TypeError as e:
 				if self.warning :
+					log = logging.getLogger('fmatoolbox')
 					log.warn("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt.name })
 				else :
 					raise e
@@ -138,6 +141,7 @@ class Config(object):
 			defaultFileList.append('/etc/' + self.prog_name + '.cfg')
 			discoveredFileList = self.fileParser.read(defaultFileList)
 
+		log = logging.getLogger('fmatoolbox')
 		log.debug("discoveredFileList: " + str(discoveredFileList))
 
 		if self.mandatory and len(discoveredFileList) < 1 :
@@ -176,6 +180,7 @@ class Config(object):
 		self.parser.add_argument('-h', '--help',		action='help', 		default=argparse.SUPPRESS, help='show this help message and exit')
 
 		# Reloading
+		log = logging.getLogger('fmatoolbox')
 		log.debug("reloading configuration ...")
 		if args.config_file :
 			self.fileParser.read(args.config_file)
@@ -202,6 +207,7 @@ class Config(object):
 		return "\n".join(res)
 
 	def write_default_config_file(self , output , comments = True):
+		log = logging.getLogger('fmatoolbox')
 		with open(output, 'w') as f:
 			if comments :
 				f.write("#####################################\n")
@@ -399,36 +405,35 @@ hooks :
 		self.post_read()
 
 	def _load(self, fileParser, section_name):
+		log = logging.getLogger('fmatoolbox')
 		try:
-			# 'get', 'getboolean', 'getfloat', 'getint'
-			data = fileParser.get( section_name, self.name)
-			log.debug("field found : " + self.name )
-			if self.conf_required :
-				if not data :
-					msg = "The required field '%(name)s' was missing from the config file." % { "name": self.name }
-					log.error(msg)
-					raise ValueError(msg)
-				data = self.e_type(data)
-			elif self.default :
-				if not data :
-					data = self.default
-
-			log.debug("field found : '%(name)s' , value : '%(data)s', type : '%(e_type)s'" , { "name": self.name , "data": data , "e_type" : self.e_type })
+			log.debug("looking for field : " + self.name )
+			data = None
 			try:
-				data = self.e_type(data)
+				if self.e_type == int :
+					data = fileParser.getint( section_name, self.name)
+				elif self.e_type == float :
+					data = fileParser.getfloat( section_name, self.name)
+				elif self.e_type == bool :
+					data = fileParser.getboolean( section_name, self.name)
+				elif self.e_type == str:
+					data = fileParser.get( section_name, self.name)
+					# happens only when the current field is present, type is string, but value is ''
+					if not data :
+						msg = "The optional field '%(name)s' was present, type is string, but the current value is an empty string." % { "name": self.name }
+						log.error(msg)
+						raise ValueError(msg)
+				else:
+					msg = "Data type not supported : %(type)s" % { "type": self.e_type}
+					log.error(msg)
+					raise TypeError(msg)
+
 			except  ValueError as e:
-				msg = "The current field '%(name)s' was present, but the required type is : %(e_type)s instead of : %(c_type)s."  % { "name": self.name , "e_type" : self.e_type , "c_type": type(data) }
+				msg = "The current field '%(name)s' was present, but the required type is : %(e_type)s."  % { "name": self.name , "e_type" : self.e_type }
 				log.error(msg)
-				msg = "Error message : %(msg)s." % { "msg": str(e) }
-				log.error(msg)
-				raise ValueError(msg)
-
-			# happens only when the current field is present, type is string, but value is ''
-			if not data:
-				msg = "The optional field '%(name)s' was present, type is string, but the current value is an empty string." % { "name": self.name }
-				log.error(msg)
-				raise ValueError(msg)
-
+				log.error(str(e))
+				raise ValueError(str(e))
+			log.debug("field found : '%(name)s' , value : '%(data)s', type : '%(e_type)s'" , { "name": self.name , "data": data , "e_type" : self.e_type })
 			self.value = data
 
 		except ConfigParser.NoOptionError :
@@ -558,7 +563,7 @@ class SampleProgram(object):
 		if getattr(args, 'debug'):
 			llog = logging.getLogger()
 			llog.setLevel(logging.DEBUG)
-			streamHandler.setFormatter(myDebugFormat)
+			streamHandler.setFormatter(debug_logging_format)
 			print "------------- config ------------------"
 			print self.config
 			print "----------- processing ----------------"
@@ -572,10 +577,13 @@ class SampleProgram(object):
 				args.__func__(args)
 				return True
 			except ValueError as a :
+				log = logging.getLogger('fmatoolbox')
 				log.error("ValueError : " + str(a))
 			except KeyboardInterrupt as a :
+				log = logging.getLogger('fmatoolbox')
 				log.warn("Keyboard interruption detected.")
 			except Exception as a :
+				log = logging.getLogger('fmatoolbox')
 				log.error("unexcepted error : " + str(a))
 			return False
 

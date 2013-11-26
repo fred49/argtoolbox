@@ -27,23 +27,17 @@
 
 import os
 import logging
-import getpass
-import base64
-import copy
-import datetime
-from ordereddict import OrderedDict
 import sys
-import ConfigParser
-
+import unittest
+import io
 from fmatoolbox import *
 
-import random
-import unittest
-import StringIO
-import io
-
+log = logging.getLogger('fmatoolbox')
+streamHandler = logging.StreamHandler(sys.stdout)
+streamHandler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s", "%H:%M:%S"))
 log.addHandler(streamHandler)
 log.setLevel(logging.FATAL)
+#log.setLevel(logging.DEBUG)
 
 
 
@@ -54,7 +48,8 @@ class TestDefaultSection(unittest.TestCase):
 elt_type_int=5
 elt_type_str=bbb
 elt_type_str2=bbb
-elt_type_bool= False
+elt_type_bool=False
+elt_type_bool_t=True
 elt_type_float = 1.00009
 elt_required=
 elt_no_value=
@@ -109,7 +104,12 @@ elt_hidden="do not show"
     def test_type_bool(self):
 	self.s.add_element(Element('elt_type_bool', e_type=bool))
 	self.c.load()
-	self.assertTrue(self.c.default.elt_type_bool.value)
+	self.assertFalse(self.c.default.elt_type_bool.value)
+
+    def test_type_bool_true(self):
+	self.s.add_element(Element('elt_type_bool_t', e_type=bool))
+	self.c.load()
+	self.assertTrue(self.c.default.elt_type_bool_t.value)
 
     def test_type_float(self):
 	self.s.add_element(Element('elt_type_float', e_type=float))
