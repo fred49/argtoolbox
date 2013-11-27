@@ -299,16 +299,10 @@ class Section(AbstractSection):
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
 		if self.count() > 0:
-			res.append(prefix)
-			res.append("Section %(name)s : " % self.__dict__)
-			res.append(suffix)
+			res.append(prefix + "Section " + self.name + suffix)
 			for elt in self.elements.values():
 				if not elt.hidden :
-					a = []
-					a.append(prefix)
-					a.append(" - %(name)s : %(value)s" % elt.__dict__)
-					res.append("".join(a))
-					res.append(suffix)
+					res.append("".join(elt.get_representation(prefix + " - ")))
 		return res
 
 	def write_config_file(self , f , comments):
@@ -332,15 +326,14 @@ class ListSection(AbstractSection):
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
-		res.append(prefix)
-		res.append("Section %(name)s : " % self.__dict__)
-		res.append(suffix)
+		res.append(prefix + "Section " + self.name + suffix)
+
 		for key, val in self.elements.items():
 			a = []
 			a.append(prefix)
 			a.append(" - " + str(key) + " : " + str(val))
+			a.append(suffix)
 			res.append("".join(a))
-			res.append(suffix)
 		return res
 
 	def __getattr__(self, name):
@@ -387,8 +380,14 @@ hooks :
 			if not isinstance(h, DefaultHook):
 				raise TypeError("hook argument should be a subclass of DefaultHook")
 
+
+	def get_representation(self , prefix = "" , suffix = "\n"):
+		res = []
+		res.append(prefix + str(self.name) + " : " + str(self.value) + suffix)
+		return res
+
 	def __str__(self):
-		return self.name + " : " + str(self.value)
+		return "".join(self.get_representation())
 
 	def post_read(self):
 		for h in self.hooks :
