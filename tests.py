@@ -56,6 +56,7 @@ elt_no_value=
 elt_type_base64=c2VjcmV0
 elt_type_not_base64=cVjcmV0
 elt_hidden="do not show"
+elt_list_value=test aa aarrr kkkk mmmmm
 
 \n"""
 	self.c = Config("linshare-cli" , config_file = io.BytesIO(sample_config), desc= " simple user cli for linshare")
@@ -115,6 +116,13 @@ elt_hidden="do not show"
 	self.s.add_element(Element('elt_type_float', e_type=float))
 	self.c.load()
 	self.assertEqual(1.00009, self.c.default.elt_type_float.value)
+
+    def test_type_list(self):
+	self.s.add_element(Element('elt_list_value', e_type=list))
+	list_value=['test', 'aa', 'aarrr', 'kkkk', 'mmmmm']
+	self.c.load()
+	self.assertEqual(list_value, self.c.default.elt_list_value.value)
+	self.assertEqual(len(list_value), len(self.c.default.elt_list_value.value))
 
     def test_hook_base64(self):
 	self.s.add_element(Element('elt_type_base64', hooks = [ Base64ElementHook(),] ))
