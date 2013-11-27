@@ -416,6 +416,13 @@ hooks :
 					data = fileParser.getfloat( section_name, self.name)
 				elif self.e_type == bool :
 					data = fileParser.getboolean( section_name, self.name)
+				elif self.e_type == list :
+					data = fileParser.get( section_name, self.name)
+					data = data.strip().split()
+					if not data :
+						msg = "The optional field '%(name)s' was present, type is list, but the current value is an empty list." % { "name": self.name }
+						log.error(msg)
+						raise ValueError(msg)
 				elif self.e_type == str:
 					data = fileParser.get( section_name, self.name)
 					# happens only when the current field is present, type is string, but value is ''
