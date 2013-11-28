@@ -224,8 +224,8 @@ class Config(object):
 # ---------------------------------------------------------------------------------------------------------------------
 class AbstractSection(object):
 
-	def __init__(self, name, desc = None, prefix = None, suffix = None):
-		self.name = name
+	def __init__(self, desc = None, prefix = None, suffix = None):
+		self.name = str(None)
 		self.desc = desc
 		self.prefix = prefix
 		self.suffix = suffix
@@ -255,7 +255,7 @@ class AbstractSection(object):
 	def write_config_file(self , f , comments):
 		if comments :
 			f.write("#####################################\n")
-			f.write("# Section : " + self.name + "\n")
+			f.write("# Section : " + "".join(self.get_representation()) + "\n")
 			f.write("#####################################\n")
 		f.write("[" + self.name + "]\n")
 		if self.desc and comments:
@@ -296,14 +296,6 @@ class Section(AbstractSection):
 			raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
 						% { "name" : name, "class" : self.__class__.__name__ } )
 
-	def get_representation(self , prefix = "" , suffix = "\n"):
-		res = []
-		if self.count() > 0:
-			res.append(prefix + "Section " + self.name + suffix)
-			for elt in self.elements.values():
-				res.append("".join(elt.get_representation(prefix)))
-		return res
-
 	def write_config_file(self , f , comments):
 		if len(self.elements) < 1 :
 			return
@@ -312,12 +304,38 @@ class Section(AbstractSection):
 		for e in self.elements.values() :
 			e.write_config_file(f , comments)
 		f.write("\n")
+# ---------------------------------------------------------------------------------------------------------------------
+class SimpleSection(Section):
+
+	def __init__(self, name, *args, **kwargs):
+		super(SimpleSection, self).__init__(*args, **kwargs)
+		self.name = name
+
+	def get_representation(self , prefix = "" , suffix = "\n"):
+		res = []
+		if self.count() > 0:
+			res.append(prefix + "Section " + self.name + suffix)
+			for elt in self.elements.values():
+				res.append("".join(elt.get_representation(prefix)))
+		return res
+
+# ---------------------------------------------------------------------------------------------------------------------
+class SubSection(Section):
+
+	def get_representation(self , prefix = "" , suffix = "\n"):
+		res = []
+		if self.count() > 0:
+			res.append(prefix + "SubSection : " + self.get_section_name().upper() + suffix)
+			for elt in self.elements.values():
+				res.append("".join(elt.get_representation(prefix)))
+		return res
 
 # ---------------------------------------------------------------------------------------------------------------------
 class ListSection(AbstractSection):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, name, *args, **kwargs):
 		super(ListSection, self).__init__(*args, **kwargs)
 		self.elements = OrderedDict()
+		self.name = name
 
 	def load(self, fileParser):
 		for key in [ item for item in fileParser.options(self.get_section_name()) if item not in fileParser.defaults().keys() ]:
@@ -504,6 +522,79 @@ hooks :
 		if self.default != None and not self.hidden:
 			f.write(str(self.default))
 		f.write("\n")
+
+# ---------------------------------------------------------------------------------------------------------------------
+class ElementWithSubSections(Element):
+
+	def __init__(self, *args, **kwargs):
+		super(ElementWithSubSections, self).__init__(*args, **kwargs)
+		self.e_type = str
+		self.sections= OrderedDict()
+
+	def get_representation(self , prefix = "" , suffix = "\n"):
+		res = ['\n']
+		if self.hidden :
+			res.append(prefix + " - " + str(self.name) + " : xxxxxxxx" + suffix)
+		else:
+			res.append(prefix + " - " + str(self.name) + " : " + str(self.value) + suffix)
+
+		if len(self.sections) > 0:
+			for elt in self.sections.values():
+				res.append("".join(elt.get_representation(prefix + "\t")))
+		return res
+
+	def add_section(self, section):
+		if not issubclass(section.__class__, SubSection):
+			raise TypeError("Argument should be a subclass of SubSection, not :" + str(section.__class__) )
+		self.sections[section.name] = section
+		return section
+
+	def load(self, fileParser, section_name):
+		self._load(fileParser , section_name)
+		if len(self.sections) > 0:
+			for sec in self.sections.values():
+				sec.name = self.value
+				sec.load(fileParser)
+		self.post_load()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+class ElementWithRelativeSubSection(ElementWithSubSections):
+
+	def __init__(self, name, rss, **kwargs):
+		super(ElementWithRelativeSubSection, self).__init__(name, **kwargs)
+		self.e_type = list
+		if not issubclass(rss.__class__, SubSection):
+			raise TypeError("Argument should be a subclass of SubSection, not :" + str(section.__class__) )
+		self.rss = rss
+
+	def load(self, fileParser, section_name):
+		self._load(fileParser , section_name)
+		if len(self.sections) > 0:
+			pass
+		for i in self.value :
+			sec = copy.deepcopy(self.rss)
+			sec.name = i
+			self.sections[i] = sec
+
+		for sec in self.sections.values():
+			sec.load(fileParser)
+
+		self.post_load()
+
+	def get_representation(self , prefix = "" , suffix = "\n"):
+		res = ['\n']
+		if self.hidden :
+			res.append(prefix + " - " + str(self.name) + " : xxxxxxxx" + suffix)
+		else:
+			res.append(prefix + " - " + str(self.name) + " : " + str(self.value) + suffix)
+
+		if len(self.sections) > 0:
+			for elt in self.sections.values():
+				res.append('\n')
+				res.append("".join(elt.get_representation(prefix + "\t")))
+		return res
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 class DefaultCommand(object):
