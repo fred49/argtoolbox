@@ -301,8 +301,7 @@ class Section(AbstractSection):
 		if self.count() > 0:
 			res.append(prefix + "Section " + self.name + suffix)
 			for elt in self.elements.values():
-				if not elt.hidden :
-					res.append("".join(elt.get_representation(prefix + " - ")))
+				res.append("".join(elt.get_representation(prefix)))
 		return res
 
 	def write_config_file(self , f , comments):
@@ -380,16 +379,18 @@ hooks :
 			if not isinstance(h, DefaultHook):
 				raise TypeError("hook argument should be a subclass of DefaultHook")
 
-
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
-		res.append(prefix + str(self.name) + " : " + str(self.value) + suffix)
+		if self.hidden :
+			res.append(prefix + " - " + str(self.name) + " : xxxxxxxx" + suffix)
+		else:
+			res.append(prefix + " - " + str(self.name) + " : " + str(self.value) + suffix)
 		return res
 
 	def __str__(self):
 		return "".join(self.get_representation())
 
-	def post_read(self):
+	def post_load(self):
 		for h in self.hooks :
 			h(self)
 
@@ -401,7 +402,7 @@ hooks :
 
 	def load(self, fileParser, section_name):
 		self._load(fileParser , section_name)
-		self.post_read()
+		self.post_load()
 
 	def _load(self, fileParser, section_name):
 		log = logging.getLogger('fmatoolbox')
@@ -439,7 +440,11 @@ hooks :
 				log.error(msg)
 				log.error(str(e))
 				raise ValueError(str(e))
-			log.debug("field found : '%(name)s' , value : '%(data)s', type : '%(e_type)s'" , { "name": self.name , "data": data , "e_type" : self.e_type })
+
+			log_data = { "name": self.name , "data": data , "e_type" : self.e_type}
+			if self.hidden :
+				log_data['data'] = "xxxxxxxx"
+			log.debug("field found : '%(name)s', value : '%(data)s', type : '%(e_type)s'" , log_data )
 			self.value = data
 
 		except ConfigParser.NoOptionError :
@@ -450,9 +455,16 @@ hooks :
 
 			if self.default != None :
 				self.value = self.default
-				log.debug("Field not found : " + self.name + ", default value : " + str(self.default))
+				log_data = { "name": self.name , "data": self.default, "e_type" : self.e_type}
+				if self.hidden :
+					log_data['data'] = "xxxxxxxx"
+				log.debug("Field not found : '%(name)s', default value : '%(data)s', type : '%(e_type)s'" , log_data )
 			else:
 				log.debug("Field not found : " + self.name)
+
+		# TODO : to be handle properly
+		except ConfigParser.NoSectionError as e:
+			print "coucou"
 
 	def get_arg_parse_arguments(self):
 		ret = dict()
@@ -489,7 +501,7 @@ hooks :
 			f.write(";")
 		f.write(self.name)
 		f.write("=")
-		if self.default != None :
+		if self.default != None and not self.hidden:
 			f.write(str(self.default))
 		f.write("\n")
 
