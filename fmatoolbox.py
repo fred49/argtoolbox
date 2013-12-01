@@ -616,7 +616,6 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
 				raise ValueError(e)
 		self.post_load()
 
-
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = ['\n']
 		if self.hidden :
@@ -687,7 +686,7 @@ class DefaultCompleter(object):
 			debug("\nERROR:An exception was caught :" + str(e) + "\n")
 
 # ---------------------------------------------------------------------------------------------------------------------
-class SampleProgram(object):
+class DefaultProgram(object):
 
 	def __init__(self , parser , config):
 		self.parser = parser
