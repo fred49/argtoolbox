@@ -83,7 +83,6 @@ class Base64ElementHook(DefaultHook):
 					log.warn("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt.name })
 				else :
 					raise e
-
 # ---------------------------------------------------------------------------------------------------------------------
 class SectionHook(object):
 	def __init__(self, section, attribute, opt_name):
@@ -114,7 +113,7 @@ class Config(object):
 		self.mandatory = mandatory
 
 		self.sections = OrderedDict()
-		self._default_section = self.add_section(Section("DEFAULT"))
+		self._default_section = self.add_section(SimpleSection("DEFAULT"))
 		self.parser = None
 
 	def add_section(self, section):
@@ -225,7 +224,7 @@ class Config(object):
 class AbstractSection(object):
 
 	def __init__(self, desc = None, prefix = None, suffix = None):
-		self.name = str(None)
+		self.name = None
 		self.desc = desc
 		self.prefix = prefix
 		self.suffix = suffix
@@ -234,7 +233,7 @@ class AbstractSection(object):
 		a = []
 		if self.prefix :
 			a.append(self.prefix)
-		a.append(self.name)
+		a.append(str(self.name))
 		if self.suffix:
 			a.append(self.suffix)
 		return "-".join(a)
@@ -243,10 +242,7 @@ class AbstractSection(object):
 		raise NotImplemented("You must implement this method.")
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
-		res = []
-		res.append(prefix)
-		res.append("Section %(name)s : " % self.__dict__)
-		res.append(suffix)
+		res = prefix + "Section " + self.get_section_name().upper() + suffix 
 		return res
 
 	def __str__(self):
@@ -304,6 +300,7 @@ class Section(AbstractSection):
 		for e in self.elements.values() :
 			e.write_config_file(f , comments)
 		f.write("\n")
+
 # ---------------------------------------------------------------------------------------------------------------------
 class SimpleSection(Section):
 
@@ -314,7 +311,7 @@ class SimpleSection(Section):
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
 		if self.count() > 0:
-			res.append(prefix + "Section " + self.name + suffix)
+			res.append(prefix + "Section " + self.get_section_name().upper() + suffix)
 			for elt in self.elements.values():
 				res.append("".join(elt.get_representation(prefix)))
 		return res
@@ -329,6 +326,20 @@ class SubSection(Section):
 			for elt in self.elements.values():
 				res.append("".join(elt.get_representation(prefix)))
 		return res
+
+	def __copy__(self):
+		newone = type(self)()
+		newone.__dict__.update(self.__dict__)
+		self.elements = OrderedDict()
+		return newone
+
+	def __deepcopy__(self, *args):
+		newone = type(self)()
+		newone.__dict__.update(self.__dict__)
+		newone.elements = OrderedDict()
+		for e in self.elements.values():
+			newone.add_element(copy.deepcopy(e))
+		return newone
 
 # ---------------------------------------------------------------------------------------------------------------------
 class ListSection(AbstractSection):
@@ -408,6 +419,12 @@ hooks :
 	def __str__(self):
 		return "".join(self.get_representation())
 
+	def __copy__(self):
+		newone = type(self)(self.name)
+		newone.__dict__.update(self.__dict__)
+		self.elements = OrderedDict()
+		return newone
+
 	def post_load(self):
 		for h in self.hooks :
 			h(self)
@@ -425,7 +442,7 @@ hooks :
 	def _load(self, fileParser, section_name):
 		log = logging.getLogger('fmatoolbox')
 		try:
-			log.debug("looking for field : " + self.name )
+			log.debug("looking for field (section=" + section_name + ") : " + self.name )
 			data = None
 			try:
 				if self.e_type == int :
@@ -570,16 +587,11 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
 
 	def load(self, fileParser, section_name):
 		self._load(fileParser , section_name)
-		if len(self.sections) > 0:
-			pass
-		for i in self.value :
-			sec = copy.deepcopy(self.rss)
-			sec.name = i
-			self.sections[i] = sec
-
-		for sec in self.sections.values():
+		for sec_name in self.value :
+			sec = copy.deepcopy(self.rss, None)
+			sec.name = sec_name
+			self.sections[sec_name] = sec
 			sec.load(fileParser)
-
 		self.post_load()
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
