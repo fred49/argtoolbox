@@ -223,11 +223,12 @@ class Config(object):
 # ---------------------------------------------------------------------------------------------------------------------
 class AbstractSection(object):
 
-	def __init__(self, desc = None, prefix = None, suffix = None):
+	def __init__(self, desc = None, prefix = None, suffix = None, required = False):
 		self.name = None
 		self.desc = desc
 		self.prefix = prefix
 		self.suffix = suffix
+		self.required = required
 
 	def get_section_name(self):
 		a = []
@@ -281,8 +282,16 @@ class Section(AbstractSection):
 
 	def load(self, fileParser):
 		section = self.get_section_name()
-		for e in self.elements.values() :
-			e.load(fileParser, section)
+		try:
+			for e in self.elements.values() :
+				e.load(fileParser, section)
+		except ConfigParser.NoSectionError as e:
+			log = logging.getLogger('fmatoolbox')
+			if self.required == True:
+				log.error("Required section : " + section)
+				raise ValueError(e)
+			else:
+				log.debug("Missing section : "  + section)
 
 	def __getattr__(self, name):
 		e = self.elements.get(name)
@@ -349,8 +358,19 @@ class ListSection(AbstractSection):
 		self.name = name
 
 	def load(self, fileParser):
-		for key in [ item for item in fileParser.options(self.get_section_name()) if item not in fileParser.defaults().keys() ]:
-			self.elements[key] = fileParser.get(self.get_section_name(), key)
+
+		section = self.get_section_name()
+		try:
+			for key in [ item for item in fileParser.options(section) if item not in fileParser.defaults().keys() ]:
+				self.elements[key] = fileParser.get(section, key)
+		except ConfigParser.NoSectionError as e:
+			log = logging.getLogger('fmatoolbox')
+			if self.required == True:
+				log.error("Required section : " + section)
+				raise ValueError(e)
+			else:
+				log.debug("Missing section : "  + section)
+
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
@@ -497,9 +517,6 @@ hooks :
 			else:
 				log.debug("Field not found : " + self.name)
 
-		# TODO : to be handle properly
-		except ConfigParser.NoSectionError as e:
-			print "coucou"
 
 	def get_arg_parse_arguments(self):
 		ret = dict()
@@ -588,11 +605,17 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
 	def load(self, fileParser, section_name):
 		self._load(fileParser , section_name)
 		for sec_name in self.value :
-			sec = copy.deepcopy(self.rss, None)
-			sec.name = sec_name
-			self.sections[sec_name] = sec
-			sec.load(fileParser)
+			try:
+				sec = copy.deepcopy(self.rss, None)
+				sec.name = sec_name
+				self.sections[sec_name] = sec
+				sec.load(fileParser)
+			except ValueError as e:
+				log = logging.getLogger('fmatoolbox')
+				log.error("Missing relative section, attribute : '[" + section_name + "]." + self.name + "', value : " + str(self.value))
+				raise ValueError(e)
 		self.post_load()
+
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = ['\n']
