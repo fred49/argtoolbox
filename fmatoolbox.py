@@ -633,8 +633,9 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
 # ---------------------------------------------------------------------------------------------------------------------
 class DefaultCommand(object):
 
-	def __init__(self):
+	def __init__(self, config = None):
 		self.log = logging.getLogger('fmatoolbox' + "." + str(self.__class__.__name__.lower()))
+		self.config =  config
 
 	def __call__(self, args):
 		# suppress __func__ object ang password just for display
