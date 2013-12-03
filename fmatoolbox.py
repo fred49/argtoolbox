@@ -126,6 +126,7 @@ class Config(object):
 		return self._default_section
 
 	def load(self):
+		log = logging.getLogger('fmatoolbox')
 		self.fileParser = ConfigParser.SafeConfigParser()
 		discoveredFileList = []
 		if self.config_file :
@@ -138,9 +139,9 @@ class Config(object):
 			defaultFileList.append(self.prog_name + ".cfg")
 			defaultFileList.append(os.path.expanduser('~/.' + self.prog_name + '.cfg'))
 			defaultFileList.append('/etc/' + self.prog_name + '.cfg')
+			log.debug("defaultFileList: " + str(defaultFileList))
 			discoveredFileList = self.fileParser.read(defaultFileList)
 
-		log = logging.getLogger('fmatoolbox')
 		log.debug("discoveredFileList: " + str(discoveredFileList))
 
 		if self.mandatory and len(discoveredFileList) < 1 :
