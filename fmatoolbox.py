@@ -398,19 +398,31 @@ class ListSection(AbstractSection):
 class Element(object):
 
 	def __init__(self, name, e_type = str, required = False, default = None, conf_hidden = False, conf_required = False, desc = None, hooks = [ DefaultHook() ], hidden = False ):
-		"""name : name of the attribute store into the configuration file.
-e_type :	Data type of the attribute.
-conf_required :	The current attribute must be present in the configuration file.
-required :	The current attribute must be present into command line arguments except if it is present into configuration file.
-default :	Default value used if the attribute is not set in configuration file.
+		"""Information about how to declare a element to load from a configuration file.
+
+	Keyword Arguments:
+
+	- name	-- name of the attribute store into the configuration file.
+
+	- e_type -- Data type of the attribute.
+
+	- conf_required -- The current attribute must be present in the configuration file.
+
+	- required -- The current attribute must be present into command line arguments except if it is present into configuration file.
+
+	- default -- Default value used if the attribute is not set in configuration file.
 		This value is also used during configuration file generation.
 		ex: 'attribute = $default_value' or  ';attribute = $default_value' if this attribute is mandatory.
 
-desc :		Description used into the configuration file and argparse.
-conf_hidden :	The current attribute will not be used during configuration file generation.
-hidden :	The current attribute will not be print on console (ex password)
-hooks :
-"""
+	- desc -- Description used into the configuration file and argparse.
+
+	- conf_hidden -- The current attribute will not be used during configuration file generation.
+
+	- hidden -- The current attribute will not be print on console (ex password)
+
+	- hooks -- one hook or a list of hook. Should be an instance of DefaultHook. The hook well be apply to the element value once read from config file.
+
+	"""
 
 		self.name = name
 		self.e_type = e_type
