@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
 
 
 # This file is part of fmatoolbox.
@@ -25,14 +26,13 @@
 #
 
 
-import os
+import os , sys , io
 import logging
 import getpass
 import base64
 import copy
 import datetime
 from ordereddict import OrderedDict
-import sys
 import ConfigParser
 import argparse
 
@@ -656,6 +656,21 @@ class DefaultCommand(object):
                 return []
 
 # ---------------------------------------------------------------------------------------------------------------------
+class TestCommand(DefaultCommand):
+
+	def __call__(self, args):
+		super(TestCommand, self).__call__(args)
+		print "Test command :"
+		print "=============="
+		print "argv : "
+		print "-------"
+		print args
+		print "---------"
+		print "config : "
+		print "---------"
+		print self.config
+
+# ---------------------------------------------------------------------------------------------------------------------
 class DefaultCompleter(object):
 	def __init__(self , func_name = "complete"):
 		self.func_name = func_name
@@ -733,8 +748,6 @@ class DefaultProgram(object):
 			return False
 
 # ---------------------------------------------------------------------------------------------------------------------
-#
-#
 def query_yes_no(question, default="yes"):
 	res = _query_yes_no(question, default)
 	if res == "yes":
@@ -743,8 +756,6 @@ def query_yes_no(question, default="yes"):
 		return False
 
 # ---------------------------------------------------------------------------------------------------------------------
-#
-#
 def _query_yes_no(question, default="yes"):
 	"""Ask a yes/no question via raw_input() and return their answer.
 
@@ -780,3 +791,72 @@ def _query_yes_no(question, default="yes"):
 		else:
 			sys.stdout.write("Please respond with 'yes' or 'no' "\
 			                 "(or 'y' or 'n').\n")
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# MAIN
+# ---------------------------------------------------------------------------------------------------------------------
+if __name__ == "__main__" :
+
+	sample_config = """
+[ldap]
+
+host=127.0.0.1
+port=389
+suffix=dc=nodomain
+account=cn=admin,dc=nodomain
+password=toto
+
+\n"""
+
+	# logger
+	log = logging.getLogger()
+	log.setLevel(logging.INFO)
+	# logger handlers
+	log.addHandler(streamHandler)
+	# debug mode
+	# if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
+	#log.setLevel(logging.DEBUG)
+	#streamHandler.setFormatter(debug_logging_format)
+
+	# create configuration
+	config = Config("sample-program" , config_file = io.BytesIO(sample_config), desc= """Just a description for a sample program. This program supports argcomplete.
+To enable it, run in bash terminal :
+	eval "$(register-python-argcomplete fmatoolbox.py)"
+""")
+
+	# section ldap
+	section_ldap = config.add_section(SimpleSection("ldap"))
+	section_ldap.add_element(Element('debug',	e_type=int,	default=0, desc="""debug level : default : 0."""))
+	section_ldap.add_element(Element('host',	required=True,	default = "192.168.1.1"))
+	section_ldap.add_element(Element('account',	required=True))
+	section_ldap.add_element(Element('port',	e_type=int))
+	section_ldap.add_element(Element('password',	required=True,	hidden=True, desc = "account password to ldap",
+						 hooks = [ Base64ElementHook(),] ))
+
+	# loading default configuration
+	config.load()
+
+	# ---------------------------------------------------------------------------------------------------------------------
+	# arguments parser
+	# ---------------------------------------------------------------------------------------------------------------------
+	parser = config.get_parser(formatter_class=argparse.RawTextHelpFormatter)
+	parser.add_argument('-d',			action="count",		**config.ldap.debug.get_arg_parse_arguments())
+	parser.add_argument('-v', '--verbose',		action="store_true", default=False)
+	parser.add_argument('--version',		action="version", version="%(prog)s 0.1")
+
+	# reloading configuration with previous optional arguments (ex config file name from argv, ...)
+	config.reload()
+
+	# Adding all others parsers.
+	subparsers = parser.add_subparsers()
+	parser_tmp = subparsers.add_parser('test', help="This simple command print cli argv and configuration read form config file.")
+	parser_tmp.set_defaults(__func__=TestCommand(config))
+
+	# run
+	prog = DefaultProgram(parser , config)
+	if prog() :
+		sys.exit(0)
+	else :
+		sys.exit(1)
