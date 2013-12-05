@@ -406,7 +406,7 @@ class ListSection(AbstractSection):
 # ---------------------------------------------------------------------------------------------------------------------
 class Element(object):
 
-	def __init__(self, name, e_type = str, required = False, default = None, conf_hidden = False, conf_required = False, desc = None, hooks = [ DefaultHook() ], hidden = False ):
+	def __init__(self, name, e_type = str, required = False, default = None, conf_hidden = False, conf_required = False, desc = None, hooks = None, hidden = False ):
 		"""Information about how to declare a element to load from a configuration file.
 
 	Keyword Arguments:
@@ -429,7 +429,7 @@ class Element(object):
 
 	- hidden -- The current attribute will not be print on console (ex password)
 
-	- hooks -- one hook or a list of hook. Should be an instance of DefaultHook. The hook well be apply to the element value once read from config file.
+	- hooks -- one hook or a list of hook. Should be an instance of DefaultHook. The hook will be apply to the element value once read from config file.
 
 	"""
 
@@ -444,10 +444,19 @@ class Element(object):
 		self.desc_for_argparse = None
 		self.value = None
 		self.hidden = hidden
-		self.hooks = hooks
 
-		for h in hooks :
-			if not isinstance(h, DefaultHook):
+		if hooks == None :
+			hooks = []
+
+		if isinstance(hooks, list) :
+			for h in hooks :
+				if not isinstance(h, DefaultHook):
+					raise TypeError("hook argument should be a subclass of DefaultHook")
+			self.hooks = hooks
+		else:
+			if isinstance(hooks, DefaultHook):
+				self.hooks = [ hooks ]
+			else:
 				raise TypeError("hook argument should be a subclass of DefaultHook")
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
