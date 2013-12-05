@@ -78,10 +78,11 @@ class Base64ElementHook(DefaultHook):
 				data = base64.b64decode(elt.value)
 				elt.value = data
 			except TypeError as e:
+				log = logging.getLogger('fmatoolbox')
 				if self.warning :
-					log = logging.getLogger('fmatoolbox')
 					log.warn("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt.name })
 				else :
+					log.error("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt.name })
 					raise e
 # ---------------------------------------------------------------------------------------------------------------------
 class SectionHook(object):
@@ -125,7 +126,7 @@ class Config(object):
 	def get_default_section(self):
 		return self._default_section
 
-	def load(self):
+	def load(self, exit_on_failure = False):
 		log = logging.getLogger('fmatoolbox')
 		self.fileParser = ConfigParser.SafeConfigParser()
 		discoveredFileList = []
@@ -149,11 +150,19 @@ class Config(object):
 			log.error(msg)
 			raise EnvironmentError(msg)
 
-		#print self.fileParser.items("DEFAULT")
 		log.debug("loading configuration ...")
-		for s in self.sections.values():
-			log.debug("loading section : " + s.get_section_name())
-			s.load(self.fileParser)
+		if exit_on_failure :
+			for s in self.sections.values():
+				log.debug("loading section : " + s.get_section_name())
+				try:
+					s.load(self.fileParser)
+				except ValueError as e :
+					sys.exit(1)
+		else:
+			for s in self.sections.values():
+				log.debug("loading section : " + s.get_section_name())
+				s.load(self.fileParser)
+
 		log.debug("configuration loaded.")
 
 	def get_parser(self , **kwargs):
@@ -274,9 +283,9 @@ class Section(AbstractSection):
 		self.elements[elt.name] = elt
 		return elt
 
-	def add_element_list(self, elt_list):
+	def add_element_list(self, elt_list, **kwargs):
 		for e in elt_list:
-			self.add_element(Element(e))
+			self.add_element(Element(e, **kwargs))
 
 	def count(self):
 		return len(self.elements)
