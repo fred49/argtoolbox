@@ -80,9 +80,9 @@ class Base64ElementHook(DefaultHook):
 			except TypeError as e:
 				log = logging.getLogger('fmatoolbox')
 				if self.warning :
-					log.warn("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt.name })
+					log.warn("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt._name })
 				else :
-					log.error("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt.name })
+					log.error("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt._name })
 					raise e
 # ---------------------------------------------------------------------------------------------------------------------
 class SectionHook(object):
@@ -110,7 +110,7 @@ class Config(object):
 	def __init__(self, prog_name, config_file = None, desc = None, mandatory = False ) :
 		self.prog_name = prog_name
 		self.config_file = config_file
-		self.desc = desc
+		self._desc = desc
 		self.mandatory = mandatory
 
 		self.sections = OrderedDict()
@@ -120,7 +120,7 @@ class Config(object):
 	def add_section(self, section):
 		if not issubclass(section.__class__, AbstractSection):
 			raise TypeError("argument should be a subclass of Section")
-		self.sections[section.name] = section
+		self.sections[section._name] = section
 		return section
 
 	def get_default_section(self):
@@ -166,7 +166,7 @@ class Config(object):
 		log.debug("configuration loaded.")
 
 	def get_parser(self , **kwargs):
-		self.parser = argparse.ArgumentParser( prog = self.prog_name , description=self.desc, add_help = False,  **kwargs)
+		self.parser = argparse.ArgumentParser( prog = self.prog_name , description=self._desc, add_help = False,  **kwargs)
 		# help is removed because parser.parse_known_args() show help, often partial help.
 		# help action will be added during reloading step for parser.parse_args()
 		self.parser.add_argument('-c', '--config-file',	action="store", help="Other configuration file.")
@@ -222,7 +222,7 @@ class Config(object):
 				f.write("#####################################\n")
 				f.write("Description :\n")
 				f.write("-------------\n")
-				f.write(self.desc)
+				f.write(self._desc)
 				f.write("\n\n")
 
 			for s in self.sections.values():
@@ -234,19 +234,19 @@ class Config(object):
 class AbstractSection(object):
 
 	def __init__(self, desc = None, prefix = None, suffix = None, required = False):
-		self.name = None
-		self.desc = desc
-		self.prefix = prefix
-		self.suffix = suffix
-		self.required = required
+		self._name = None
+		self._desc = desc
+		self._prefix = prefix
+		self._suffix = suffix
+		self._required = required
 
 	def get_section_name(self):
 		a = []
-		if self.prefix :
-			a.append(self.prefix)
-		a.append(str(self.name))
-		if self.suffix:
-			a.append(self.suffix)
+		if self._prefix :
+			a.append(self._prefix)
+		a.append(str(self._name))
+		if self._suffix:
+			a.append(self._suffix)
 		return "-".join(a)
 
 	def load(self, fileParser):
@@ -264,10 +264,10 @@ class AbstractSection(object):
 			f.write("#####################################\n")
 			f.write("# Section : " + "".join(self.get_representation()) + "\n")
 			f.write("#####################################\n")
-		f.write("[" + self.name + "]\n")
-		if self.desc and comments:
+		f.write("[" + self._name + "]\n")
+		if self._desc and comments:
 			f.write("# Description : ")
-			f.write(self.desc)
+			f.write(self._desc)
 			f.write("\n")
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -280,7 +280,7 @@ class Section(AbstractSection):
 	def add_element(self, elt):
 		if not isinstance(elt, Element):
 			raise TypeError("argument should be a subclass of Element")
-		self.elements[elt.name] = elt
+		self.elements[elt._name] = elt
 		return elt
 
 	def add_element_list(self, elt_list, **kwargs):
@@ -297,7 +297,7 @@ class Section(AbstractSection):
 				e.load(fileParser, section)
 		except ConfigParser.NoSectionError as e:
 			log = logging.getLogger('fmatoolbox')
-			if self.required == True:
+			if self._required == True:
 				log.error("Required section : " + section)
 				raise ValueError(e)
 			else:
@@ -325,7 +325,7 @@ class SimpleSection(Section):
 
 	def __init__(self, name, *args, **kwargs):
 		super(SimpleSection, self).__init__(*args, **kwargs)
-		self.name = name
+		self._name = name
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
@@ -365,7 +365,7 @@ class ListSection(AbstractSection):
 	def __init__(self, name, *args, **kwargs):
 		super(ListSection, self).__init__(*args, **kwargs)
 		self.elements = OrderedDict()
-		self.name = name
+		self._name = name
 
 	def load(self, fileParser):
 
@@ -375,7 +375,7 @@ class ListSection(AbstractSection):
 				self.elements[key] = fileParser.get(section, key)
 		except ConfigParser.NoSectionError as e:
 			log = logging.getLogger('fmatoolbox')
-			if self.required == True:
+			if self._required == True:
 				log.error("Required section : " + section)
 				raise ValueError(e)
 			else:
@@ -384,7 +384,7 @@ class ListSection(AbstractSection):
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
-		res.append(prefix + "Section " + self.name + suffix)
+		res.append(prefix + "Section " + self._name + suffix)
 
 		for key, val in self.elements.items():
 			a = []
@@ -433,15 +433,15 @@ class Element(object):
 
 	"""
 
-		self.name = name
+		self._name = name
 		self.e_type = e_type
-		self.required = required
+		self._required = required
 		self.default = default
-		self.desc = desc
+		self._desc = desc
 		self.conf_hidden = conf_hidden
 		self.conf_required  = conf_required
-		self.desc_for_config = None
-		self.desc_for_argparse = None
+		self._desc_for_config = None
+		self._desc_for_argparse = None
 		self.value = None
 		self.hidden = hidden
 
@@ -462,16 +462,16 @@ class Element(object):
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = []
 		if self.hidden :
-			res.append(prefix + " - " + str(self.name) + " : xxxxxxxx" + suffix)
+			res.append(prefix + " - " + str(self._name) + " : xxxxxxxx" + suffix)
 		else:
-			res.append(prefix + " - " + str(self.name) + " : " + str(self.value) + suffix)
+			res.append(prefix + " - " + str(self._name) + " : " + str(self.value) + suffix)
 		return res
 
 	def __str__(self):
 		return "".join(self.get_representation())
 
 	def __copy__(self):
-		newone = type(self)(self.name)
+		newone = type(self)(self._name)
 		newone.__dict__.update(self.__dict__)
 		self.elements = OrderedDict()
 		return newone
@@ -483,7 +483,7 @@ class Element(object):
 	def set_value(self, val):
 		if not instance(val, self.e_type):
 			raise TypeError("Element value from config called '%(name)s' should have the type : '%(e_type)s'" 
-				 % { "name": self.name , "e_type" : self.e_type })
+				 % { "name": self._name , "e_type" : self.e_type })
 		self.value = val
 
 	def load(self, fileParser, section_name):
@@ -493,27 +493,27 @@ class Element(object):
 	def _load(self, fileParser, section_name):
 		log = logging.getLogger('fmatoolbox')
 		try:
-			log.debug("looking for field (section=" + section_name + ") : " + self.name )
+			log.debug("looking for field (section=" + section_name + ") : " + self._name )
 			data = None
 			try:
 				if self.e_type == int :
-					data = fileParser.getint( section_name, self.name)
+					data = fileParser.getint( section_name, self._name)
 				elif self.e_type == float :
-					data = fileParser.getfloat( section_name, self.name)
+					data = fileParser.getfloat( section_name, self._name)
 				elif self.e_type == bool :
-					data = fileParser.getboolean( section_name, self.name)
+					data = fileParser.getboolean( section_name, self._name)
 				elif self.e_type == list :
-					data = fileParser.get( section_name, self.name)
+					data = fileParser.get( section_name, self._name)
 					data = data.strip().split()
 					if not data :
-						msg = "The optional field '%(name)s' was present, type is list, but the current value is an empty list." % { "name": self.name }
+						msg = "The optional field '%(name)s' was present, type is list, but the current value is an empty list." % { "name": self._name }
 						log.error(msg)
 						raise ValueError(msg)
 				elif self.e_type == str:
-					data = fileParser.get( section_name, self.name)
+					data = fileParser.get( section_name, self._name)
 					# happens only when the current field is present, type is string, but value is ''
 					if not data :
-						msg = "The optional field '%(name)s' was present, type is string, but the current value is an empty string." % { "name": self.name }
+						msg = "The optional field '%(name)s' was present, type is string, but the current value is an empty string." % { "name": self._name }
 						log.error(msg)
 						raise ValueError(msg)
 				else:
@@ -522,12 +522,12 @@ class Element(object):
 					raise TypeError(msg)
 
 			except  ValueError as e:
-				msg = "The current field '%(name)s' was present, but the required type is : %(e_type)s."  % { "name": self.name , "e_type" : self.e_type }
+				msg = "The current field '%(name)s' was present, but the required type is : %(e_type)s."  % { "name": self._name , "e_type" : self.e_type }
 				log.error(msg)
 				log.error(str(e))
 				raise ValueError(str(e))
 
-			log_data = { "name": self.name , "data": data , "e_type" : self.e_type}
+			log_data = { "name": self._name , "data": data , "e_type" : self.e_type}
 			if self.hidden :
 				log_data['data'] = "xxxxxxxx"
 			log.debug("field found : '%(name)s', value : '%(data)s', type : '%(e_type)s'" , log_data )
@@ -535,32 +535,32 @@ class Element(object):
 
 		except ConfigParser.NoOptionError :
 			if self.conf_required :
-				msg = "The required field " + self.name  + " was missing from the config file."
+				msg = "The required field " + self._name  + " was missing from the config file."
 				log.error(msg)
 				raise ValueError(msg)
 
 			if self.default != None :
 				self.value = self.default
-				log_data = { "name": self.name , "data": self.default, "e_type" : self.e_type}
+				log_data = { "name": self._name , "data": self.default, "e_type" : self.e_type}
 				if self.hidden :
 					log_data['data'] = "xxxxxxxx"
 				log.debug("Field not found : '%(name)s', default value : '%(data)s', type : '%(e_type)s'" , log_data )
 			else:
-				log.debug("Field not found : " + self.name)
+				log.debug("Field not found : " + self._name)
 
 
 	def get_arg_parse_arguments(self):
 		ret = dict()
-		if self.required :
+		if self._required :
 			if self.value != None :
 				ret["default"] = self.value
 			else:
 				ret["required"] = True
-		ret["dest"] = self.name
+		ret["dest"] = self._name
 		if self.value != None :
 			ret["default"] = self.value
-		if self.desc :
-			ret["help"] = self.desc
+		if self._desc :
+			ret["help"] = self._desc
 		return ret
 
 	def write_config_file(self , f, comments):
@@ -572,17 +572,17 @@ class Element(object):
 			f.write("# Attribute (")
 			f.write(str(self.e_type.__name__))
 			f.write(") : ")
-			f.write(self.name.upper())
+			f.write(self._name.upper())
 			f.write("\n")
-			if self.desc and self.desc != argparse.SUPPRESS:
+			if self._desc and self._desc != argparse.SUPPRESS:
 				f.write("# Description : ")
-				f.write(self.desc)
+				f.write(self._desc)
 				f.write("\n")
 
 
 		if not self.conf_required:
 			f.write(";")
-		f.write(self.name)
+		f.write(self._name)
 		f.write("=")
 		if self.default != None and not self.hidden:
 			f.write(str(self.default))
@@ -599,9 +599,9 @@ class ElementWithSubSections(Element):
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = ['\n']
 		if self.hidden :
-			res.append(prefix + " - " + str(self.name) + " : xxxxxxxx" + suffix)
+			res.append(prefix + " - " + str(self._name) + " : xxxxxxxx" + suffix)
 		else:
-			res.append(prefix + " - " + str(self.name) + " : " + str(self.value) + suffix)
+			res.append(prefix + " - " + str(self._name) + " : " + str(self.value) + suffix)
 
 		if len(self.sections) > 0:
 			for elt in self.sections.values():
@@ -635,29 +635,32 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
 
 	def load(self, fileParser, section_name):
 		self._load(fileParser , section_name)
-		for sec_name in self.value :
-			try:
-				sec = copy.deepcopy(self.rss, None)
-				sec.name = sec_name
-				self.sections[sec_name] = sec
-				sec.load(fileParser)
-			except ValueError as e:
-				log = logging.getLogger('fmatoolbox')
-				log.error("Missing relative section, attribute : '[" + section_name + "]." + self.name + "', value : " + str(self.value))
-				raise ValueError(e)
+                if isinstance(self.value, list):
+
+		    for sec_name in self.value :
+		    	try:
+		    		sec = copy.deepcopy(self.rss, None)
+		    		sec._name = sec_name
+		    		self.sections[sec_name] = sec
+		    		sec.load(fileParser)
+		    	except ValueError as e:
+		    		log = logging.getLogger('fmatoolbox')
+		    		log.error("Missing relative section, attribute : '[" + section_name + "]." + self._name + "', value : " + str(self.value))
+		    		raise ValueError(e)
 		self.post_load()
 
 	def get_representation(self , prefix = "" , suffix = "\n"):
 		res = ['\n']
 		if self.hidden :
-			res.append(prefix + " - " + str(self.name) + " : xxxxxxxx" + suffix)
+			res.append(prefix + " - " + str(self._name) + " : xxxxxxxx" + suffix)
 		else:
-			res.append(prefix + " - " + str(self.name) + " : " + str(self.value) + suffix)
+			res.append(prefix + " - " + str(self._name) + " : " + str(self.value) + suffix)
 
 		if len(self.sections) > 0:
 			for elt in self.sections.values():
 				res.append('\n')
 				res.append("".join(elt.get_representation(prefix + "\t")))
+			res.append('\n')
 		return res
 
 
@@ -674,7 +677,7 @@ class DefaultCommand(object):
 		delattr(dict_tmp, "__func__")
 		#delattr(dict_tmp, "password")
 		if hasattr(dict_tmp, "password"):
-			setattr(dict_tmp, "password" , "xxx")
+			setattr(dict_tmp, "password" , "xxxxxxxx")
 		self.log.debug("Namespace : begin :")
 		for i in dict_tmp.__dict__:
 			self.log.debug(i + " : " + str(getattr(dict_tmp, i)))
