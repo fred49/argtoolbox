@@ -535,7 +535,7 @@ class Element(object):
 
 		except ConfigParser.NoOptionError :
 			if self.conf_required :
-				msg = "The required field " + self._name  + " was missing from the config file."
+				msg = "The required field '" + self._name  + "' was missing from the config file."
 				log.error(msg)
 				raise ValueError(msg)
 
@@ -546,7 +546,7 @@ class Element(object):
 					log_data['data'] = "xxxxxxxx"
 				log.debug("Field not found : '%(name)s', default value : '%(data)s', type : '%(e_type)s'" , log_data )
 			else:
-				log.debug("Field not found : " + self._name)
+				log.debug("Field not found : '" + self._name + "'")
 
 
 	def get_arg_parse_arguments(self):
@@ -667,17 +667,18 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
 # ---------------------------------------------------------------------------------------------------------------------
 class DefaultCommand(object):
 
+
 	def __init__(self, config = None):
 		self.log = logging.getLogger('fmatoolbox' + "." + str(self.__class__.__name__.lower()))
 		self.config =  config
+                self.protected_args = [ 'password' ]
 
 	def __call__(self, args):
-		# suppress __func__ object ang password just for display
 		dict_tmp=copy.copy(args)
-		delattr(dict_tmp, "__func__")
-		#delattr(dict_tmp, "password")
-		if hasattr(dict_tmp, "password"):
-			setattr(dict_tmp, "password" , "xxxxxxxx")
+		#delattr(dict_tmp, "__func__")
+                for field in getattr(self, 'protected_args', []) :
+		    if hasattr(dict_tmp, field):
+			setattr(dict_tmp, field, "xxxxxxxx")
 		self.log.debug("Namespace : begin :")
 		for i in dict_tmp.__dict__:
 			self.log.debug(i + " : " + str(getattr(dict_tmp, i)))
