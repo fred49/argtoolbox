@@ -100,7 +100,9 @@ class SectionHook(object):
 		self.opt_name = opt_name
 
 	def __call__(self , args):
+                # looking for a specific opt_name in command line args
 		value = getattr(args, self.opt_name)
+                # if defined, we set this value to a attribute of input Section.
 		if value != None :
 			setattr(self.section , self.attribute, value)
 
