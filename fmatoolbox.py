@@ -20,95 +20,118 @@
 #
 # Copyright 2013 Frédéric MARTIN
 #
-# Contributors list :
+# Contributors list:
 #
 #  Frédéric MARTIN frederic.martin.fma@gmail.com
 #
 
-
-import os , sys , io
+import os
+import sys
+import io
 import logging
-import getpass
 import base64
 import copy
-import datetime
 from ordereddict import OrderedDict
 import ConfigParser
 import argparse
 
-
-# ---------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # global logger variable
 #log = logging.getLogger('fmatoolbox')
 #log.setLevel(logging.INFO)
 #log.setLevel(logging.DEBUG)
 # logger formats
-default_logging_format = logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
-debug_logging_format = logging.Formatter("%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s", "%H:%M:%S")
+DEFAULT_LOGGING_FORMAT = logging.Formatter(
+    "%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
+DEBUG_LOGGING_FORMAT = logging.Formatter(
+    "%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s",
+    "%H:%M:%S")
 # logger handlers
+# pylint: disable-msg=C0103
 streamHandler = logging.StreamHandler(sys.stdout)
-streamHandler.setFormatter(default_logging_format)
+streamHandler.setFormatter(DEFAULT_LOGGING_FORMAT)
 
 # debug mode
-# if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
-if False:
-#if True:
-    log.addHandler(streamHandler)
-    log.setLevel(logging.DEBUG)
-    streamHandler.setFormatter(debug_logging_format)
+# if you need debug during class construction, file config loading, ...,
+# you need to modify the logger level here.
+#log.addHandler(streamHandler)
+#log.setLevel(logging.DEBUG)
+#streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
 
-# ---------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class DefaultHook(object):
+    """Abstract hook, do nothing"""
+
     def __init__(self):
         pass
 
     def __call__(self, elt):
         pass
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class Base64ElementHook(DefaultHook):
-    def __init__(self, warning = False):
+    """This class is used as a post reading processing in order to convert
+    base64 data stored into the config file in plain text data."""
+    def __init__(self, warning=False):
+        super(Base64ElementHook, self).__init__()
         self.warning = warning
 
     def __call__(self, elt):
-        if elt.value :
+        if elt.value:
             try:
                 data = base64.b64decode(elt.value)
                 elt.value = data
-            except TypeError as e:
+            except TypeError as ex:
                 log = logging.getLogger('fmatoolbox')
-                if self.warning :
-                    log.warn("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt._name })
-                else :
-                    log.error("current field '%(name)s' is not stored in the configuration file with base64 encoding" , { "name" : elt._name })
-                    raise e
-# ---------------------------------------------------------------------------------------------------------------------
+                if self.warning:
+                    log.warn("current field '%(name)s' is not \
+                        stored in the configuration file with \
+                        base64 encoding",
+                             {"name": getattr(elt, "_name")})
+                else:
+                    log.error("current field '%(name)s' is not stored in the \
+                    configuration file with base64 encoding", {"name":
+                              getattr(elt, "_name")})
+                    raise ex
+
+
+# -----------------------------------------------------------------------------
 class SectionHook(object):
+    """This class is used as a post loading processing to the current section.
+    """
     def __init__(self, section, attribute, opt_name):
         if not issubclass(section.__class__, AbstractSection):
             raise TypeError("First argument should be a subclass of Section.")
         self.section = section
 
         if not isinstance(attribute, str):
-            raise TypeError("Second argument should be a string, attribute name.")
+            raise TypeError("Second argument should be a string, "
+                            + "attribute name.")
         self.attribute = attribute
 
         if not isinstance(opt_name, str):
             raise TypeError("Third argument should be a string, option name.")
         self.opt_name = opt_name
 
-    def __call__(self , args):
-                # looking for a specific opt_name in command line args
+    def __call__(self, args):
+        # looking for a specific opt_name in command line args
         value = getattr(args, self.opt_name)
-                # if defined, we set this value to a attribute of input Section.
-        if value != None :
-            setattr(self.section , self.attribute, value)
+        # if defined, we set this value to a attribute of input Section.
+        if value is not None:
+            setattr(self.section, self.attribute, value)
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class Config(object):
+    # pylint: disable-msg=R0902
+    """This is the entry point, this class will contains all Section and
+     Elements. All loading, configuration declaration and processing will be
+     done by this class."""
 
-    def __init__(self, prog_name, config_file = None, desc = None, mandatory = False ) :
+    def __init__(self, prog_name, config_file=None, desc=None,
+                 mandatory=False):
         self.prog_name = prog_name
         self.config_file = config_file
         self._desc = desc
@@ -117,47 +140,55 @@ class Config(object):
         self.sections = OrderedDict()
         self._default_section = self.add_section(SimpleSection("DEFAULT"))
         self.parser = None
+        self.fileParser = ConfigParser.SafeConfigParser()
 
     def add_section(self, section):
+        """Add a new Section object to the config. Should be a subclass of
+        AbstractSection."""
         if not issubclass(section.__class__, AbstractSection):
             raise TypeError("argument should be a subclass of Section")
-        self.sections[section._name] = section
+        self.sections[section.get_key_name()] = section
         return section
 
     def get_default_section(self):
+        """This method will return default section object"""
         return self._default_section
 
-    def load(self, exit_on_failure = False):
+    def load(self, exit_on_failure=False):
+        """One you have added all your configuration data (Section, Element,
+        ...) you need to load data from the config file."""
         log = logging.getLogger('fmatoolbox')
-        self.fileParser = ConfigParser.SafeConfigParser()
         discoveredFileList = []
-        if self.config_file :
-            if isinstance(self.config_file , str):
+        if self.config_file:
+            if isinstance(self.config_file, str):
                 discoveredFileList = self.fileParser.read(self.config_file)
             else:
-                discoveredFileList = self.fileParser.readfp(self.config_file, "file descriptor")
+                discoveredFileList = self.fileParser.readfp(self.config_file,
+                                                            "file descriptor")
         else:
             defaultFileList = []
             defaultFileList.append(self.prog_name + ".cfg")
-            defaultFileList.append(os.path.expanduser('~/.' + self.prog_name + '.cfg'))
+            defaultFileList.append(
+                os.path.expanduser('~/.' + self.prog_name + '.cfg'))
             defaultFileList.append('/etc/' + self.prog_name + '.cfg')
             log.debug("defaultFileList: " + str(defaultFileList))
             discoveredFileList = self.fileParser.read(defaultFileList)
 
         log.debug("discoveredFileList: " + str(discoveredFileList))
 
-        if self.mandatory and len(discoveredFileList) < 1 :
-            msg="The required config file was missing. Default config files : " + str(defaultFileList)
+        if self.mandatory and len(discoveredFileList) < 1:
+            msg = "The required config file was missing."
+            msg += " Default config files : " + str(defaultFileList)
             log.error(msg)
             raise EnvironmentError(msg)
 
         log.debug("loading configuration ...")
-        if exit_on_failure :
+        if exit_on_failure:
             for s in self.sections.values():
                 log.debug("loading section : " + s.get_section_name())
                 try:
                     s.load(self.fileParser)
-                except ValueError as e :
+                except ValueError:
                     sys.exit(1)
         else:
             for s in self.sections.values():
@@ -166,33 +197,54 @@ class Config(object):
 
         log.debug("configuration loaded.")
 
-    def get_parser(self , **kwargs):
-        self.parser = argparse.ArgumentParser( prog = self.prog_name , description=self._desc, add_help = False,  **kwargs)
-        # help is removed because parser.parse_known_args() show help, often partial help.
-        # help action will be added during reloading step for parser.parse_args()
-        self.parser.add_argument('-c', '--config-file',    action="store", help="Other configuration file.")
+    def get_parser(self, **kwargs):
+        """This method will create and return a new parser with prog_name,
+        description, and a config file argument.
+        """
+        self.parser = argparse.ArgumentParser(prog=self.prog_name,
+                                              description=self._desc,
+                                              add_help=False,  **kwargs)
+        # help is removed because parser.parse_known_args() show help,
+        # often partial help. help action will be added during
+        # reloading step for parser.parse_args()
+        self.parser.add_argument('-c', '--config-file',
+                                 action="store",
+                                 help="Other configuration file.")
         return self.parser
 
-    def reload(self , hooks = None):
-        # Parsing the command line looking for the previous options like configuration file name or server section. Extra arguments will be store into argv.
-        args , argv = self.parser.parse_known_args()
+    def reload(self, hooks=None):
+        """This method will reload the configuration using input argument
+        from the command line interface.
+        1. pasing arguments
+        2. applying hooks
+        3. addding help argument
+        4. reloading configuration using cli argument like a configuration
+        file name.
+        """
+        # Parsing the command line looking for the previous options like
+        # configuration file name or server section. Extra arguments
+        # will be store into argv.
+        args = self.parser.parse_known_args()[0]
 
-        if hooks != None :
-            if isinstance(hooks, list) :
-                for h in hooks :
+        if hooks is not None:
+            if isinstance(hooks, list):
+                for h in hooks:
                     if isinstance(h, SectionHook):
                         h(args)
             else:
                 if isinstance(hooks, SectionHook):
                     hooks(args)
 
-        # After the first argument parsing, for configuration reloading, we can add the help action.
-        self.parser.add_argument('-h', '--help',        action='help',         default=argparse.SUPPRESS, help='show this help message and exit')
+        # After the first argument parsing, for configuration reloading,
+        # we can add the help action.
+        self.parser.add_argument('-h', '--help', action='help',
+                                 default=argparse.SUPPRESS,
+                                 help='show this help message and exit')
 
         # Reloading
         log = logging.getLogger('fmatoolbox')
         log.debug("reloading configuration ...")
-        if args.config_file :
+        if args.config_file:
             self.fileParser.read(args.config_file)
         for s in self.sections.values():
             log.debug("loading section : " + s.get_section_name())
@@ -203,11 +255,11 @@ class Config(object):
         if name.lower() == "default":
             return self._default_section
         s = self.sections.get(name)
-        if s :
+        if s:
             return s
         else:
-            raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
-                        % { "name" : name, "class" : self.__class__.__name__ } )
+            raise AttributeError("'%(class)s' object has no attribute \
+            '%(name)s'" % {"name": name, "class": self.__class__.__name__})
 
     def __str__(self):
         res = []
@@ -216,10 +268,14 @@ class Config(object):
             res.append("".join(s.get_representation("\t")))
         return "\n".join(res)
 
-    def write_default_config_file(self , output , comments = True):
+    def write_default_config_file(self, output, comments=True):
+        """This method write a sample file, with attributes, descriptions,
+        sample values, required flags, using the configuration object
+        properties.
+        """
         log = logging.getLogger('fmatoolbox')
         with open(output, 'w') as f:
-            if comments :
+            if comments:
                 f.write("#####################################\n")
                 f.write("Description :\n")
                 f.write("-------------\n")
@@ -228,40 +284,64 @@ class Config(object):
 
             for s in self.sections.values():
                 log.debug("loading section : " + s.get_section_name())
-                s.write_config_file(f , comments)
+                s.write_config_file(f, comments)
         log.debug("config file generation complete : " + str(output))
 
-# ---------------------------------------------------------------------------------------------------------------------
-class AbstractSection(object):
 
-    def __init__(self, desc = None, prefix = None, suffix = None, required = False):
+# -----------------------------------------------------------------------------
+class AbstractSection(object):
+    """This class is the parent class of all Section classes. You can not use
+    it, you must implement abstract methods.
+    """
+
+    def __init__(self, desc=None, prefix=None,
+                 suffix=None, required=False):
         self._name = None
         self._desc = desc
         self._prefix = prefix
         self._suffix = suffix
         self._required = required
 
+    def get_key_name(self):
+        """This method return the name of the section, it Should be unique
+        because it is used as a key or identifier."""
+        return self._name
+
     def get_section_name(self):
+        """This method build the current section name that the program will
+        looking for into the configuration file.
+        The format is [<prefix>-]<name>[-<suffix>].
+        """
         a = []
-        if self._prefix :
+        if self._prefix:
             a.append(self._prefix)
         a.append(str(self._name))
         if self._suffix:
             a.append(self._suffix)
         return "-".join(a)
 
+    # pylint: disable-msg=W0613
+    # pylint: disable-msg=R0201
     def load(self, fileParser):
-        raise NotImplemented("You must implement this method.")
+        """ This method must be implemented by the subclass. This method should
+        read and load all section elements.
+        """
+        raise NotImplementedError("You must implement this method.")
 
-    def get_representation(self , prefix = "" , suffix = "\n"):
-        res = prefix + "Section " + self.get_section_name().upper() + suffix 
+    def get_representation(self, prefix="", suffix="\n"):
+        """return the string representation of the current object."""
+        res = prefix + "Section " + self.get_section_name().upper() + suffix
         return res
 
     def __str__(self):
         return "".join(self.get_representation())
 
-    def write_config_file(self , f , comments):
-        if comments :
+    def write_config_file(self, f, comments):
+        """This method write a sample file, with attributes, descriptions,
+        sample values, required flags, using the configuration object
+        properties.
+        """
+        if comments:
             f.write("#####################################\n")
             f.write("# Section : " + "".join(self.get_representation()) + "\n")
             f.write("#####################################\n")
@@ -271,7 +351,8 @@ class AbstractSection(object):
             f.write(self._desc)
             f.write("\n")
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class Section(AbstractSection):
 
     def __init__(self, *args, **kwargs):
@@ -294,55 +375,63 @@ class Section(AbstractSection):
     def load(self, fileParser):
         section = self.get_section_name()
         try:
-            for e in self.elements.values() :
+            for e in self.elements.values():
                 e.load(fileParser, section)
         except ConfigParser.NoSectionError as e:
             log = logging.getLogger('fmatoolbox')
-            if self._required == True:
+            if self._required:
                 log.error("Required section : " + section)
                 raise ValueError(e)
             else:
-                log.debug("Missing section : "  + section)
+                log.debug("Missing section : " + section)
 
     def __getattr__(self, name):
         e = self.elements.get(name)
-        if e :
+        if e:
             return e
         else:
-            raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
-                        % { "name" : name, "class" : self.__class__.__name__ } )
+            raise AttributeError("'%(class)s' object has no attribute \
+            '%(name)s'" % {"name": name, "class": self.__class__.__name__})
 
-    def write_config_file(self , f , comments):
-        if len(self.elements) < 1 :
+    def write_config_file(self, f, comments):
+        """This method write a sample file, with attributes, descriptions,
+        sample values, required flags, using the configuration object
+        properties.
+        """
+        if len(self.elements) < 1:
             return
-        super(Section,self).write_config_file(f, comments)
+        super(Section, self).write_config_file(f, comments)
 
-        for e in self.elements.values() :
-            e.write_config_file(f , comments)
+        for e in self.elements.values():
+            e.write_config_file(f, comments)
         f.write("\n")
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class SimpleSection(Section):
 
     def __init__(self, name, *args, **kwargs):
         super(SimpleSection, self).__init__(*args, **kwargs)
         self._name = name
 
-    def get_representation(self , prefix = "" , suffix = "\n"):
+    def get_representation(self, prefix="", suffix="\n"):
         res = []
         if self.count() > 0:
-            res.append(prefix + "Section " + self.get_section_name().upper() + suffix)
+            res.append(prefix + "Section "
+                       + self.get_section_name().upper() + suffix)
             for elt in self.elements.values():
                 res.append("".join(elt.get_representation(prefix)))
         return res
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class SubSection(Section):
 
-    def get_representation(self , prefix = "" , suffix = "\n"):
+    def get_representation(self, prefix="", suffix="\n"):
         res = []
         if self.count() > 0:
-            res.append(prefix + "SubSection : " + self.get_section_name().upper() + suffix)
+            res.append(prefix + "SubSection : "
+                       + self.get_section_name().upper() + suffix)
             for elt in self.elements.values():
                 res.append("".join(elt.get_representation(prefix)))
         return res
@@ -361,7 +450,8 @@ class SubSection(Section):
             newone.add_element(copy.deepcopy(e))
         return newone
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class ListSection(AbstractSection):
     def __init__(self, name, *args, **kwargs):
         super(ListSection, self).__init__(*args, **kwargs)
@@ -372,18 +462,18 @@ class ListSection(AbstractSection):
 
         section = self.get_section_name()
         try:
-            for key in [ item for item in fileParser.options(section) if item not in fileParser.defaults().keys() ]:
+            for key in [item for item in fileParser.options(section)
+                        if item not in fileParser.defaults().keys()]:
                 self.elements[key] = fileParser.get(section, key)
         except ConfigParser.NoSectionError as e:
             log = logging.getLogger('fmatoolbox')
-            if self._required == True:
+            if self._required:
                 log.error("Required section : " + section)
                 raise ValueError(e)
             else:
-                log.debug("Missing section : "  + section)
+                log.debug("Missing section : " + section)
 
-
-    def get_representation(self , prefix = "" , suffix = "\n"):
+    def get_representation(self, prefix="", suffix="\n"):
         res = []
         res.append(prefix + "Section " + self._name + suffix)
 
@@ -398,17 +488,22 @@ class ListSection(AbstractSection):
     def __getattr__(self, name):
 
         e = self.elements.get(name)
-        if e != None :
+        if e is not None:
             return e
         else:
-            raise AttributeError("'%(class)s' object has no attribute '%(name)s'" 
-                        % { "name" : name, "class" : self.__class__.__name__ } )
+            raise AttributeError(
+                "'%(class)s' object has no attribute '%(name)s'"
+                % {"name": name, "class": self.__class__.__name__})
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class Element(object):
 
-    def __init__(self, name, e_type = str, required = False, default = None, conf_hidden = False, conf_required = False, desc = None, hooks = None, hidden = False ):
-        """Information about how to declare a element to load from a configuration file.
+    def __init__(self, name, e_type=str, required=False, default=None,
+                 conf_hidden=False, conf_required=False, desc=None,
+                 hooks=None, hidden=False):
+        """Information about how to declare a element to load from a
+        configuration file.
 
     Keyword Arguments:
 
@@ -416,21 +511,29 @@ class Element(object):
 
     - e_type -- Data type of the attribute.
 
-    - conf_required -- The current attribute must be present in the configuration file.
+    - conf_required -- The current attribute must be present in the
+    configuration file.
 
-    - required -- The current attribute must be present into command line arguments except if it is present into configuration file.
+    - required -- The current attribute must be present into command line
+    arguments except if it is present into configuration file.
 
-    - default -- Default value used if the attribute is not set in configuration file.
+    - default -- Default value used if the attribute is not set in
+    configuration file.
         This value is also used during configuration file generation.
-        ex: 'attribute = $default_value' or  ';attribute = $default_value' if this attribute is mandatory.
+        ex: 'attribute = $default_value' or  ';attribute = $default_value'
+        if this attribute is mandatory.
 
     - desc -- Description used into the configuration file and argparse.
 
-    - conf_hidden -- The current attribute will not be used during configuration file generation.
+    - conf_hidden -- The current attribute will not be used during
+    configuration file generation.
 
-    - hidden -- The current attribute will not be print on console (ex password)
+    - hidden -- The current attribute will not be print on console
+    (ex password)
 
-    - hooks -- one hook or a list of hook. Should be an instance of DefaultHook. The hook will be apply to the element value once read from config file.
+    - hooks -- one hook or a list of hook. Should be an instance of
+    DefaultHook. The hook will be apply to the element value once read
+    from config file.
 
     """
 
@@ -440,32 +543,36 @@ class Element(object):
         self.default = default
         self._desc = desc
         self.conf_hidden = conf_hidden
-        self.conf_required  = conf_required
+        self.conf_required = conf_required
         self._desc_for_config = None
         self._desc_for_argparse = None
         self.value = None
         self.hidden = hidden
 
-        if hooks == None :
+        if hooks is None:
             hooks = []
 
-        if isinstance(hooks, list) :
-            for h in hooks :
+        if isinstance(hooks, list):
+            for h in hooks:
                 if not isinstance(h, DefaultHook):
-                    raise TypeError("hook argument should be a subclass of DefaultHook")
+                    raise TypeError("Hook argument should be a subclass"
+                                    + " of DefaultHook")
             self.hooks = hooks
         else:
             if isinstance(hooks, DefaultHook):
-                self.hooks = [ hooks ]
+                self.hooks = [hooks]
             else:
-                raise TypeError("hook argument should be a subclass of DefaultHook")
+                raise TypeError(
+                    "Hook argument should be a subclass of DefaultHook")
 
-    def get_representation(self , prefix = "" , suffix = "\n"):
+    def get_representation(self, prefix="", suffix="\n"):
         res = []
-        if self.hidden :
-            res.append(prefix + " - " + str(self._name) + " : xxxxxxxx" + suffix)
+        if self.hidden:
+            res.append(prefix + " - " + str(self._name)
+                       + " : xxxxxxxx" + suffix)
         else:
-            res.append(prefix + " - " + str(self._name) + " : " + str(self.value) + suffix)
+            res.append(prefix + " - " + str(self._name)
+                       + " : " + str(self.value) + suffix)
         return res
 
     def __str__(self):
@@ -478,93 +585,114 @@ class Element(object):
         return newone
 
     def post_load(self):
-        for h in self.hooks :
+        for h in self.hooks:
             h(self)
 
     def set_value(self, val):
         if not instance(val, self.e_type):
-            raise TypeError("Element value from config called '%(name)s' should have the type : '%(e_type)s'" 
-                 % { "name": self._name , "e_type" : self.e_type })
+            raise TypeError(
+                "Element value from config called '%(name)s' \
+                should have the type : '%(e_type)s'"
+                % {"name": self._name, "e_type": self.e_type})
         self.value = val
 
     def load(self, fileParser, section_name):
-        self._load(fileParser , section_name)
+        self._load(fileParser, section_name)
         self.post_load()
 
     def _load(self, fileParser, section_name):
         log = logging.getLogger('fmatoolbox')
         try:
-            log.debug("looking for field (section=" + section_name + ") : " + self._name )
+            log.debug("looking for field (section=" + section_name
+                      + ") : " + self._name)
             data = None
             try:
-                if self.e_type == int :
-                    data = fileParser.getint( section_name, self._name)
-                elif self.e_type == float :
-                    data = fileParser.getfloat( section_name, self._name)
-                elif self.e_type == bool :
-                    data = fileParser.getboolean( section_name, self._name)
-                elif self.e_type == list :
-                    data = fileParser.get( section_name, self._name)
+                if self.e_type == int:
+                    data = fileParser.getint(section_name, self._name)
+                elif self.e_type == float:
+                    data = fileParser.getfloat(section_name, self._name)
+                elif self.e_type == bool:
+                    data = fileParser.getboolean(section_name, self._name)
+                elif self.e_type == list:
+                    data = fileParser.get(section_name, self._name)
                     data = data.strip().split()
-                    if not data :
-                        msg = "The optional field '%(name)s' was present, type is list, but the current value is an empty list." % { "name": self._name }
+                    if not data:
+                        msg = "The optional field '%(name)s' was present, \
+                        type is list, but the current value is an empty \
+                        list." % {"name": self._name}
                         log.error(msg)
                         raise ValueError(msg)
                 elif self.e_type == str:
-                    data = fileParser.get( section_name, self._name)
-                    # happens only when the current field is present, type is string, but value is ''
-                    if not data :
-                        msg = "The optional field '%(name)s' was present, type is string, but the current value is an empty string." % { "name": self._name }
+                    data = fileParser.get(section_name, self._name)
+                    # happens only when the current field is present,
+                    # type is string, but value is ''
+                    if not data:
+                        msg = "The optional field '%(name)s' was present, \
+                        type is string, but the current value is an empty \
+                        string." % {"name": self._name}
                         log.error(msg)
                         raise ValueError(msg)
                 else:
-                    msg = "Data type not supported : %(type)s" % { "type": self.e_type}
+                    msg = "Data type not supported : %(type)s\
+                    " % {"type": self.e_type}
                     log.error(msg)
                     raise TypeError(msg)
 
-            except  ValueError as e:
-                msg = "The current field '%(name)s' was present, but the required type is : %(e_type)s."  % { "name": self._name , "e_type" : self.e_type }
+            except ValueError as ex:
+                msg = "The current field '%(name)s' was present, but the \
+                required type is : %(e_type)s." % {
+                    "name": self._name,
+                    "e_type": self.e_type
+                    }
                 log.error(msg)
-                log.error(str(e))
-                raise ValueError(str(e))
+                log.error(str(ex))
+                raise ValueError(str(ex))
 
-            log_data = { "name": self._name , "data": data , "e_type" : self.e_type}
-            if self.hidden :
+            log_data = {"name": self._name, "data": data,
+                        "e_type": self.e_type}
+            if self.hidden:
                 log_data['data'] = "xxxxxxxx"
-            log.debug("field found : '%(name)s', value : '%(data)s', type : '%(e_type)s'" , log_data )
+            log.debug("field found : '%(name)s', value : '%(data)s', \
+                        type : '%(e_type)s'", log_data)
             self.value = data
 
-        except ConfigParser.NoOptionError :
-            if self.conf_required :
-                msg = "The required field '" + self._name  + "' was missing from the config file."
+        except ConfigParser.NoOptionError:
+            if self.conf_required:
+                msg = "The required field '%(name)s' was missing from the \
+                config file." % {"name": self._name}
                 log.error(msg)
                 raise ValueError(msg)
 
-            if self.default != None :
+            if self.default is not None:
                 self.value = self.default
-                log_data = { "name": self._name , "data": self.default, "e_type" : self.e_type}
-                if self.hidden :
+                log_data = {"name": self._name, "data": self.default,
+                            "e_type": self.e_type}
+                if self.hidden:
                     log_data['data'] = "xxxxxxxx"
-                log.debug("Field not found : '%(name)s', default value : '%(data)s', type : '%(e_type)s'" , log_data )
+                log.debug("Field not found : '%(name)s', default value : \
+                    '%(data)s', type : '%(e_type)s'", log_data)
             else:
                 log.debug("Field not found : '" + self._name + "'")
 
-
     def get_arg_parse_arguments(self):
         ret = dict()
-        if self._required :
-            if self.value != None :
+        if self._required:
+            if self.value is not None:
                 ret["default"] = self.value
             else:
                 ret["required"] = True
         ret["dest"] = self._name
-        if self.value != None :
+        if self.value is not None:
             ret["default"] = self.value
-        if self._desc :
+        if self._desc:
             ret["help"] = self._desc
         return ret
 
-    def write_config_file(self , f, comments):
+    def write_config_file(self, f, comments):
+        """This method write a sample file, with attributes, descriptions,
+        sample values, required flags, using the configuration object
+        properties.
+        """
         if self.conf_hidden:
             return False
 
@@ -580,29 +708,31 @@ class Element(object):
                 f.write(self._desc)
                 f.write("\n")
 
-
         if not self.conf_required:
             f.write(";")
         f.write(self._name)
         f.write("=")
-        if self.default != None and not self.hidden:
+        if self.default is not None and not self.hidden:
             f.write(str(self.default))
         f.write("\n")
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class ElementWithSubSections(Element):
 
     def __init__(self, *args, **kwargs):
         super(ElementWithSubSections, self).__init__(*args, **kwargs)
         self.e_type = str
-        self.sections= OrderedDict()
+        self.sections = OrderedDict()
 
-    def get_representation(self , prefix = "" , suffix = "\n"):
+    def get_representation(self, prefix="", suffix="\n"):
         res = ['\n']
-        if self.hidden :
-            res.append(prefix + " - " + str(self._name) + " : xxxxxxxx" + suffix)
+        temp_line = prefix + " - " + str(self._name) + " : "
+        if self.hidden:
+            temp_line += "xxxxxxxx" + suffix
         else:
-            res.append(prefix + " - " + str(self._name) + " : " + str(self.value) + suffix)
+            temp_line += str(self.value) + suffix
+        res.append(temp_line)
 
         if len(self.sections) > 0:
             for elt in self.sections.values():
@@ -611,12 +741,13 @@ class ElementWithSubSections(Element):
 
     def add_section(self, section):
         if not issubclass(section.__class__, SubSection):
-            raise TypeError("Argument should be a subclass of SubSection, not :" + str(section.__class__) )
+            raise TypeError("Argument should be a subclass of SubSection, \
+                             not :" + str(section.__class__))
         self.sections[section.name] = section
         return section
 
     def load(self, fileParser, section_name):
-        self._load(fileParser , section_name)
+        self._load(fileParser, section_name)
         if len(self.sections) > 0:
             for sec in self.sections.values():
                 sec.name = self.value
@@ -624,20 +755,21 @@ class ElementWithSubSections(Element):
         self.post_load()
 
 
-# ---------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class ElementWithRelativeSubSection(ElementWithSubSections):
 
     def __init__(self, name, rss, **kwargs):
         super(ElementWithRelativeSubSection, self).__init__(name, **kwargs)
         self.e_type = list
         if not issubclass(rss.__class__, SubSection):
-            raise TypeError("Argument should be a subclass of SubSection, not :" + str(section.__class__) )
+            raise TypeError("Argument should be a subclass of SubSection, \
+                            not :" + str(section.__class__))
         self.rss = rss
 
     def load(self, fileParser, section_name):
-        self._load(fileParser , section_name)
+        self._load(fileParser, section_name)
         if isinstance(self.value, list):
-            for sec_name in self.value :
+            for sec_name in self.value:
                 try:
                     sec = copy.deepcopy(self.rss, None)
                     sec._name = sec_name
@@ -645,16 +777,22 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
                     sec.load(fileParser)
                 except ValueError as e:
                     log = logging.getLogger('fmatoolbox')
-                    log.error("Missing relative section, attribute : '[" + section_name + "]." + self._name + "', value : " + str(self.value))
+                    error = []
+                    error.append("Missing relative section, attribute : ")
+                    error.append("'[" + section_name + "]." + self._name)
+                    error.append("', value : " + str(self.value))
+                    log.error("".join(error))
                     raise ValueError(e)
         self.post_load()
 
-    def get_representation(self , prefix = "" , suffix = "\n"):
+    def get_representation(self, prefix="", suffix="\n"):
         res = ['\n']
-        if self.hidden :
-            res.append(prefix + " - " + str(self._name) + " : xxxxxxxx" + suffix)
+        temp_line = prefix + " - " + str(self._name) + " : "
+        if self.hidden:
+            temp_line += "xxxxxxxx" + suffix
         else:
-            res.append(prefix + " - " + str(self._name) + " : " + str(self.value) + suffix)
+            temp_line += str(self.value) + suffix
+        res.append(temp_line)
 
         if len(self.sections) > 0:
             for elt in self.sections.values():
@@ -664,19 +802,19 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
         return res
 
 
-# ---------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class DefaultCommand(object):
 
-
-    def __init__(self, config = None):
-        self.log = logging.getLogger('fmatoolbox' + "." + str(self.__class__.__name__.lower()))
-        self.config =  config
-        self.protected_args = [ 'password' ]
+    def __init__(self, config=None):
+        self.log = logging.getLogger(
+            'fmatoolbox' + "." + str(self.__class__.__name__.lower()))
+        self.config = config
+        self.protected_args = ['password']
 
     def __call__(self, args):
-        dict_tmp=copy.copy(args)
+        dict_tmp = copy.copy(args)
         #delattr(dict_tmp, "__func__")
-        for field in getattr(self, 'protected_args', []) :
+        for field in getattr(self, 'protected_args', []):
             if hasattr(dict_tmp, field):
                 setattr(dict_tmp, field, "xxxxxxxx")
         self.log.debug("Namespace : begin :")
@@ -685,11 +823,13 @@ class DefaultCommand(object):
         self.log.debug("Namespace : end.")
 
     def complete(self, args,  prefix):
-        """Auto complete method, args is comming from argparse and prefix is the input data from command line.
+        """Auto complete method, args is comming from argparse and prefix is
+        the input data from command line.
         You must return a list."""
         return []
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class TestCommand(DefaultCommand):
 
     def __call__(self, args):
@@ -704,9 +844,10 @@ class TestCommand(DefaultCommand):
         print "---------"
         print self.config
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class DefaultCompleter(object):
-    def __init__(self , func_name = "complete"):
+    def __init__(self, func_name="complete"):
         self.func_name = func_name
 
     def __call__(self, prefix, **kwargs):
@@ -716,18 +857,19 @@ class DefaultCompleter(object):
         try:
             debug("\n-----------------------------")
             debug(str(kwargs))
-            for i , j in kwargs.items() :
+            for i, j in kwargs.items():
                 debug(i)
                 debug("\t" + str(j))
 
             args = kwargs.get('parsed_args')
             parser = kwargs.get('parser')
             #a = parser.parse_known_args()
-            a= args
+            a = args
             debug("\n-----------------------------")
             debug(str(a))
 
-            # getting form args the current Command and looking for a method called by default 'complete'. 
+            # getting form args the current Command and looking for a method
+            # called by default 'complete'.
             # The method name is specified  by func_name
             fn = getattr(args.__func__, self.func_name, None)
             if fn:
@@ -736,10 +878,11 @@ class DefaultCompleter(object):
         except Exception as e:
             debug("\nERROR:An exception was caught :" + str(e) + "\n")
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 class DefaultProgram(object):
 
-    def __init__(self , parser , config):
+    def __init__(self, parser, config):
         self.parser = parser
         self.config = config
 
@@ -748,7 +891,7 @@ class DefaultProgram(object):
         try:
             import argcomplete
             argcomplete.autocomplete(self.parser)
-        except ImportError as e :
+        except ImportError as e:
             pass
 
         # parse cli arguments
@@ -757,7 +900,7 @@ class DefaultProgram(object):
         if getattr(args, 'debug'):
             llog = logging.getLogger()
             llog.setLevel(logging.DEBUG)
-            streamHandler.setFormatter(debug_logging_format)
+            streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
             print "------------- config ------------------"
             print self.config
             print "----------- processing ----------------"
@@ -770,18 +913,19 @@ class DefaultProgram(object):
                 # run command
                 args.__func__(args)
                 return True
-            except ValueError as a :
+            except ValueError as a:
                 log = logging.getLogger('fmatoolbox')
                 log.error("ValueError : " + str(a))
-            except KeyboardInterrupt as a :
+            except KeyboardInterrupt as a:
                 log = logging.getLogger('fmatoolbox')
                 log.warn("Keyboard interruption detected.")
-            except Exception as a :
+            except Exception as a:
                 log = logging.getLogger('fmatoolbox')
                 log.error("unexcepted error : " + str(a))
             return False
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 def query_yes_no(question, default="yes"):
     res = _query_yes_no(question, default)
     if res == "yes":
@@ -789,7 +933,8 @@ def query_yes_no(question, default="yes"):
     else:
         return False
 
-# ---------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 def _query_yes_no(question, default="yes"):
     """Ask a yes/no question via raw_input() and return their answer.
 
@@ -800,9 +945,9 @@ def _query_yes_no(question, default="yes"):
 
     The "answer" return value is one of "yes" or "no".
     """
-    valid = {"yes":"yes",   "y":"yes",  "ye":"yes",
-             "no":"no",     "n":"no"}
-    if default == None:
+    valid = {"yes": "yes", "y": "yes", "ye": "yes",
+             "no": "no", "n": "no"}
+    if default is None:
         prompt = " [y/n] "
     elif default == "yes":
         prompt = " [Y/n] "
@@ -815,7 +960,7 @@ def _query_yes_no(question, default="yes"):
         sys.stdout.write(question + prompt)
         try:
             choice = raw_input().lower()
-        except KeyboardInterrupt as e :
+        except KeyboardInterrupt as e:
             print
             return "no"
         if default is not None and choice == '':
@@ -823,15 +968,14 @@ def _query_yes_no(question, default="yes"):
         elif choice in valid.keys():
             return valid[choice]
         else:
-            sys.stdout.write("Please respond with 'yes' or 'no' "\
+            sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
 
-
-# ---------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # MAIN
-# ---------------------------------------------------------------------------------------------------------------------
-if __name__ == "__main__" :
+# -----------------------------------------------------------------------------
+if __name__ == "__main__":
 
     sample_config = """
 [ldap]
@@ -850,47 +994,64 @@ password=toto
     # logger handlers
     log.addHandler(streamHandler)
     # debug mode
-    # if you need debug during class construction, file config loading, ...,  you need to modify the logger level here.
+    # if you need debug during class construction, file config loading, ...,
+    # you need to modify the logger level here.
     #log.setLevel(logging.DEBUG)
-    #streamHandler.setFormatter(debug_logging_format)
+    #streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
     # create configuration
-    config = Config("sample-program" , config_file = io.BytesIO(sample_config), desc= """Just a description for a sample program. This program supports argcomplete.
-To enable it, run in bash terminal :
+    config = Config("sample-program",
+                    config_file=io.BytesIO(sample_config),
+                    desc="""Just a description for a sample program.
+This program supports argcomplete.
+To enable it, run in bash terminal:
     eval "$(register-python-argcomplete fmatoolbox.py)"
 """)
 
     # section ldap
     section_ldap = config.add_section(SimpleSection("ldap"))
-    section_ldap.add_element(Element('debug',    e_type=int,    default=0, desc="""debug level : default : 0."""))
-    section_ldap.add_element(Element('host',    required=True,    default = "192.168.1.1"))
-    section_ldap.add_element(Element('account',    required=True))
-    section_ldap.add_element(Element('port',    e_type=int))
-    section_ldap.add_element(Element('password',    required=True,    hidden=True, desc = "account password to ldap",
-                         hooks = [ Base64ElementHook(),] ))
+    section_ldap.add_element(Element('debug',
+                                     e_type=int,
+                                     default=0,
+                                     desc="""debug level : default : 0."""))
+    section_ldap.add_element(Element('host',
+                                     required=True,
+                                     default="192.168.1.1"))
+    section_ldap.add_element(Element('account', required=True))
+    section_ldap.add_element(Element('port', e_type=int))
+    section_ldap.add_element(Element('password',
+                                     required=True,
+                                     hidden=True,
+                                     desc="account password to ldap",
+                                     hooks=[Base64ElementHook(), ]))
 
     # loading default configuration
     config.load()
 
-    # ---------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # arguments parser
-    # ---------------------------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     parser = config.get_parser(formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-d',            action="count",        **config.ldap.debug.get_arg_parse_arguments())
-    parser.add_argument('-v', '--verbose',        action="store_true", default=False)
-    parser.add_argument('--version',        action="version", version="%(prog)s 0.1")
+    parser.add_argument('-d', action="count",
+                        **config.ldap.debug.get_arg_parse_arguments())
+    parser.add_argument('-v', '--verbose', action="store_true", default=False)
+    parser.add_argument('--version', action="version", version="%(prog)s 0.1")
 
-    # reloading configuration with previous optional arguments (ex config file name from argv, ...)
+    # reloading configuration with previous optional arguments
+    # (example : config file name from argv, ...)
     config.reload()
 
     # Adding all others parsers.
     subparsers = parser.add_subparsers()
-    parser_tmp = subparsers.add_parser('test', help="This simple command print cli argv and configuration read form config file.")
+    parser_tmp = subparsers.add_parser(
+        'test',
+        help="This simple command print cli argv and configuration read \
+        form config file.")
     parser_tmp.set_defaults(__func__=TestCommand(config))
 
     # run
-    prog = DefaultProgram(parser , config)
-    if prog() :
+    prog = DefaultProgram(parser, config)
+    if prog():
         sys.exit(0)
-    else :
+    else:
         sys.exit(1)
