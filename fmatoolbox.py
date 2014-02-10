@@ -497,6 +497,8 @@ class ListSection(AbstractSection):
 
 
 # -----------------------------------------------------------------------------
+# warning| [R0902, Element] Too many instance attributes (13/7)
+# pylint: disable-msg=R0902
 class Element(object):
 
     def __init__(self, name, e_type=str, required=False, default=None,
@@ -763,7 +765,7 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
         self.e_type = list
         if not issubclass(rss.__class__, SubSection):
             raise TypeError("Argument should be a subclass of SubSection, \
-                            not :" + str(section.__class__))
+                            not :" + str(Section.__class__))
         self.rss = rss
 
     def load(self, fileParser, section_name):
