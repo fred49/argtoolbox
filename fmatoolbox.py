@@ -84,6 +84,7 @@ class Base64ElementHook(DefaultHook):
                 data = base64.b64decode(elt.value)
                 elt.value = data
             except TypeError as ex:
+                # pylint: disable-msg=W0621
                 log = logging.getLogger('fmatoolbox')
                 if self.warning:
                     log.warn("current field '%(name)s' is not \
@@ -157,6 +158,7 @@ class Config(object):
     def load(self, exit_on_failure=False):
         """One you have added all your configuration data (Section, Element,
         ...) you need to load data from the config file."""
+        # pylint: disable-msg=W0621
         log = logging.getLogger('fmatoolbox')
         discoveredFileList = []
         if self.config_file:
@@ -242,6 +244,7 @@ class Config(object):
                                  help='show this help message and exit')
 
         # Reloading
+        # pylint: disable-msg=W0621
         log = logging.getLogger('fmatoolbox')
         log.debug("reloading configuration ...")
         if args.config_file:
@@ -273,6 +276,7 @@ class Config(object):
         sample values, required flags, using the configuration object
         properties.
         """
+        # pylint: disable-msg=W0621
         log = logging.getLogger('fmatoolbox')
         with open(output, 'w') as f:
             if comments:
@@ -354,22 +358,28 @@ class AbstractSection(object):
 
 # -----------------------------------------------------------------------------
 class Section(AbstractSection):
-
+    """Simple secton object, container for Elements"""
     def __init__(self, *args, **kwargs):
         super(Section, self).__init__(*args, **kwargs)
         self.elements = OrderedDict()
 
     def add_element(self, elt):
+        """Helper to add a element to the current section. The Element name will
+        be used as an identifier."""
         if not isinstance(elt, Element):
             raise TypeError("argument should be a subclass of Element")
-        self.elements[elt._name] = elt
+        self.elements[elt.get_name()] = elt
         return elt
 
     def add_element_list(self, elt_list, **kwargs):
+        """Helper to add a list of similar elements to the current section.
+        Element names will be used as an identifier."""
         for e in elt_list:
             self.add_element(Element(e, **kwargs))
 
     def count(self):
+        """This method will return the number of Element in the current
+        Section"""
         return len(self.elements)
 
     def load(self, fileParser):
@@ -378,6 +388,7 @@ class Section(AbstractSection):
             for e in self.elements.values():
                 e.load(fileParser, section)
         except ConfigParser.NoSectionError as e:
+            # pylint: disable-msg=W0621
             log = logging.getLogger('fmatoolbox')
             if self._required:
                 log.error("Required section : " + section)
@@ -409,6 +420,8 @@ class Section(AbstractSection):
 
 # -----------------------------------------------------------------------------
 class SimpleSection(Section):
+    """A simple section object. This container car store elements or sub
+    sections"""
 
     def __init__(self, name, *args, **kwargs):
         super(SimpleSection, self).__init__(*args, **kwargs)
@@ -466,6 +479,7 @@ class ListSection(AbstractSection):
                         if item not in fileParser.defaults().keys()]:
                 self.elements[key] = fileParser.get(section, key)
         except ConfigParser.NoSectionError as e:
+            # pylint: disable-msg=W0621
             log = logging.getLogger('fmatoolbox')
             if self._required:
                 log.error("Required section : " + section)
@@ -567,6 +581,10 @@ class Element(object):
                 raise TypeError(
                     "Hook argument should be a subclass of DefaultHook")
 
+    def get_name(self):
+        """This method will return the name of the current element"""
+        return self._name
+
     def get_representation(self, prefix="", suffix="\n"):
         res = []
         if self.hidden:
@@ -583,7 +601,7 @@ class Element(object):
     def __copy__(self):
         newone = type(self)(self._name)
         newone.__dict__.update(self.__dict__)
-        self.elements = OrderedDict()
+        #self.elements = OrderedDict()
         return newone
 
     def post_load(self):
@@ -603,6 +621,7 @@ class Element(object):
         self.post_load()
 
     def _load(self, fileParser, section_name):
+        # pylint: disable-msg=W0621
         log = logging.getLogger('fmatoolbox')
         try:
             log.debug("looking for field (section=" + section_name
@@ -778,6 +797,7 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
                     self.sections[sec_name] = sec
                     sec.load(fileParser)
                 except ValueError as e:
+                    # pylint: disable-msg=W0621
                     log = logging.getLogger('fmatoolbox')
                     error = []
                     error.append("Missing relative section, attribute : ")
@@ -853,9 +873,7 @@ class DefaultCompleter(object):
         self.func_name = func_name
 
     def __call__(self, prefix, **kwargs):
-        import argcomplete
         from argcomplete import debug
-        from argcomplete import warn
         try:
             debug("\n-----------------------------")
             debug(str(kwargs))
@@ -864,7 +882,7 @@ class DefaultCompleter(object):
                 debug("\t" + str(j))
 
             args = kwargs.get('parsed_args')
-            parser = kwargs.get('parser')
+            l_parser = kwargs.get('parser')
             #a = parser.parse_known_args()
             a = args
             debug("\n-----------------------------")
@@ -893,7 +911,7 @@ class DefaultProgram(object):
         try:
             import argcomplete
             argcomplete.autocomplete(self.parser)
-        except ImportError as e:
+        except ImportError:
             pass
 
         # parse cli arguments
@@ -911,24 +929,24 @@ class DefaultProgram(object):
             args.__func__(args)
             return True
         else:
+            # pylint: disable-msg=W0621
+            log = logging.getLogger('fmatoolbox')
             try:
                 # run command
                 args.__func__(args)
                 return True
             except ValueError as a:
-                log = logging.getLogger('fmatoolbox')
                 log.error("ValueError : " + str(a))
             except KeyboardInterrupt as a:
-                log = logging.getLogger('fmatoolbox')
                 log.warn("Keyboard interruption detected.")
             except Exception as a:
-                log = logging.getLogger('fmatoolbox')
                 log.error("unexcepted error : " + str(a))
             return False
 
 
 # -----------------------------------------------------------------------------
 def query_yes_no(question, default="yes"):
+    """Just prompt the user for a yes/no question"""
     res = _query_yes_no(question, default)
     if res == "yes":
         return True
@@ -962,7 +980,7 @@ def _query_yes_no(question, default="yes"):
         sys.stdout.write(question + prompt)
         try:
             choice = raw_input().lower()
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             print
             return "no"
         if default is not None and choice == '':
@@ -1002,7 +1020,7 @@ password=toto
     #streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
     # create configuration
-    config = Config("sample-program",
+    myconfig = Config("sample-program",
                     config_file=io.BytesIO(sample_config),
                     desc="""Just a description for a sample program.
 This program supports argcomplete.
@@ -1011,7 +1029,7 @@ To enable it, run in bash terminal:
 """)
 
     # section ldap
-    section_ldap = config.add_section(SimpleSection("ldap"))
+    section_ldap = myconfig.add_section(SimpleSection("ldap"))
     section_ldap.add_element(Element('debug',
                                      e_type=int,
                                      default=0,
@@ -1028,31 +1046,33 @@ To enable it, run in bash terminal:
                                      hooks=[Base64ElementHook(), ]))
 
     # loading default configuration
-    config.load()
+    myconfig.load()
 
     # -------------------------------------------------------------------------
     # arguments parser
     # -------------------------------------------------------------------------
-    parser = config.get_parser(formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-d', action="count",
-                        **config.ldap.debug.get_arg_parse_arguments())
-    parser.add_argument('-v', '--verbose', action="store_true", default=False)
-    parser.add_argument('--version', action="version", version="%(prog)s 0.1")
+    myparser = myconfig.get_parser(
+        formatter_class=argparse.RawTextHelpFormatter)
+    # pylint: disable-msg=W0142
+    myparser.add_argument('-d', action="count",
+                        **myconfig.ldap.debug.get_arg_parse_arguments())
+    myparser.add_argument('-v', '--verbose', action="store_true", default=False)
+    myparser.add_argument('--version', action="version", version="%(prog)s 0.1")
 
     # reloading configuration with previous optional arguments
     # (example : config file name from argv, ...)
-    config.reload()
+    myconfig.reload()
 
     # Adding all others parsers.
-    subparsers = parser.add_subparsers()
+    subparsers = myparser.add_subparsers()
     parser_tmp = subparsers.add_parser(
         'test',
         help="This simple command print cli argv and configuration read \
         form config file.")
-    parser_tmp.set_defaults(__func__=TestCommand(config))
+    parser_tmp.set_defaults(__func__=TestCommand(myconfig))
 
     # run
-    prog = DefaultProgram(parser, config)
+    prog = DefaultProgram(myparser, myconfig)
     if prog():
         sys.exit(0)
     else:
