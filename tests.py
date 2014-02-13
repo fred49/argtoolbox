@@ -25,25 +25,20 @@
 #
 
 
-import logging
-import sys
 import unittest
 import io
-from fmatoolbox import *
-
-log = logging.getLogger('fmatoolbox')
-streamHandler = logging.StreamHandler(sys.stdout)
-streamHandler.setFormatter(
-    logging.Formatter(
-        "%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s",
-        "%H:%M:%S"))
-log.addHandler(streamHandler)
-log.setLevel(logging.FATAL)
-#log.setLevel(logging.DEBUG)
+import sys
+import logging
+from fmatoolbox import Config, Element, Base64ElementHook
 
 
+# pylint: disable-msg=R0904
+# (too many methods)
 class TestDefaultSection(unittest.TestCase):
+    """Testing options of Element class."""
 
+# pylint: disable-msg=C0103
+# (invalid method name)
     def setUp(self):
         sample_config = """[DEFAULT]
 elt_type_int=5
@@ -66,10 +61,13 @@ elt_list_value=test aa aarrr kkkk mmmmm
         self.s = self.c.get_default_section()
 
     def test_required(self):
+        """Testing if the required parameter with a missing option"""
         self.s.add_element(Element('elt_missing', conf_required=True))
         self.assertRaises(ValueError, self.c.load)
 
     def test_required_without_value(self):
+        # pylint: disable-msg=C0301
+        """Testing if the required parameter with a blank value and default parameter fill with data"""
         self.s.add_element(Element(
             'elt_required',
             default="plop",
@@ -77,28 +75,31 @@ elt_list_value=test aa aarrr kkkk mmmmm
         self.assertRaises(ValueError, self.c.load)
 
     def test_required_without_value_without_default(self):
+        """Testing if the required parameter with a blank value"""
         self.s.add_element(Element(
             'elt_required',
             conf_required=True))
         self.assertRaises(ValueError, self.c.load)
 
     def test_no_attribute(self):
-        self.s.add_element(Element(
-            'elt_type_int', e_type=int,  conf_required=True))
-        self.c.load()
-        self.assertEqual(5, self.c.default.elt_type_int.value)
-
-    def raiseAttributeErrorException():
-        self.c.default.elt_missing
+        # pylint: disable-msg=C0301
+        """Testing AttributeError exception when we try to access to a missing attribute"""
+        def raiseAttributeErrorException():
+            """This method is trying to access to a missing attribute.
+            It should raise an exception"""
+            # pylint: disable-msg=W0104
+            self.c.default.elt_missing
         self.assertRaises(AttributeError, raiseAttributeErrorException)
 
     def test_not_present(self):
+        """Looking for a optional missing option"""
         self.s.add_element(Element(
             'elt_missing'))
         self.c.load()
         self.assertEqual(None, self.c.default.elt_missing.value)
 
     def test_not_present_with_default(self):
+        """Looking for a optional missing option (default value is set)"""
         self.s.add_element(Element(
             'elt_missing',
             e_type=int,
@@ -107,6 +108,7 @@ elt_list_value=test aa aarrr kkkk mmmmm
         self.assertEqual(8, self.c.default.elt_missing.value)
 
     def test_type_int(self):
+        """Trying to get a integer value from a option"""
         self.s.add_element(Element(
             'elt_type_int',
             e_type=int))
@@ -114,30 +116,35 @@ elt_list_value=test aa aarrr kkkk mmmmm
         self.assertEqual(5, self.c.default.elt_type_int.value)
 
     def test_type_str(self):
+        """Trying to get a string value from a option"""
         self.s.add_element(Element(
             'elt_type_str'))
         self.c.load()
         self.assertEqual("bbb", self.c.default.elt_type_str.value)
 
     def test_type_bool(self):
+        """Trying to get a boolean value from a option(=False)"""
         self.s.add_element(Element(
             'elt_type_bool', e_type=bool))
         self.c.load()
         self.assertFalse(self.c.default.elt_type_bool.value)
 
     def test_type_bool_true(self):
+        """Trying to get a boolean value from a option(=True)"""
         self.s.add_element(Element(
             'elt_type_bool_t', e_type=bool))
         self.c.load()
         self.assertTrue(self.c.default.elt_type_bool_t.value)
 
     def test_type_float(self):
+        """Trying to get a float value from a option"""
         self.s.add_element(Element(
             'elt_type_float', e_type=float))
         self.c.load()
         self.assertEqual(1.00009, self.c.default.elt_type_float.value)
 
     def test_type_list(self):
+        """Trying to get a list of string values from a option"""
         self.s.add_element(Element(
             'elt_list_value', e_type=list))
         list_value = ['test', 'aa', 'aarrr', 'kkkk', 'mmmmm']
@@ -147,49 +154,68 @@ elt_list_value=test aa aarrr kkkk mmmmm
                          len(self.c.default.elt_list_value.value))
 
     def test_hook_base64(self):
+        # pylint: disable-msg=C0301
+        """Testing if the Base64ElementHook will warn you if it is not base64 option"""
         self.s.add_element(Element(
             'elt_type_base64', hooks=[Base64ElementHook(), ]))
         self.c.load()
         self.assertEqual("secret", self.c.default.elt_type_base64.value)
 
     def test_hook_not_base64(self):
+        # pylint: disable-msg=C0301
+        """Testing if the Base64ElementHook will rise an exception for non base64 option"""
         self.s.add_element(Element(
             'elt_type_not_base64', hooks=[Base64ElementHook(), ]))
         self.assertRaises(TypeError, self.c.load)
 
     def test_hook_not_base64_2(self):
+        """Testing if the Base64ElementHook will decode base64 option"""
         self.s.add_element(Element(
             'elt_type_not_base64', hooks=[Base64ElementHook(True), ]))
         self.c.load()
         self.assertEqual("cVjcmV0", self.c.default.elt_type_not_base64.value)
 
     def test_hidden(self):
+        """Testing a hidden option"""
         self.s.add_element(Element(
             'elt_hidden', hidden=True))
         self.c.load()
-        # TODO : code the test
+        # TODO : code the hidden test
 
     def test_type_wrong_int(self):
+        """Testing string value in integer option"""
         self.s.add_element(Element(
             'elt_type_str2', e_type=int))
         self.assertRaises(ValueError, self.c.load)
 
     def test_without_default_without_value_str(self):
+        """Testing a missing string option with no default value"""
         self.s.add_element(Element(
             'elt_no_value'))
         self.assertRaises(ValueError, self.c.load)
         self.assertEqual(None, self.c.default.elt_no_value.value)
 
     def test_without_default_without_value_int(self):
+        """Testing a missing integer option with no default value"""
         self.s.add_element(Element(
             'elt_no_value', e_type=int))
         self.assertRaises(ValueError, self.c.load)
 
     def test_without_default_without_value_float(self):
+        """Testing a missing float option with no default value"""
         self.s.add_element(Element(
             'elt_no_value',
             e_type=float))
         self.assertRaises(ValueError, self.c.load)
 
 if __name__ == '__main__':
+    LOG = logging.getLogger('fmatoolbox')
+    STREAMHANDLER = logging.StreamHandler(sys.stdout)
+    STREAMHANDLER.setFormatter(
+        logging.Formatter(
+            "%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s",
+            "%H:%M:%S"))
+    LOG.addHandler(STREAMHANDLER)
+    LOG.setLevel(logging.FATAL)
+    #log.setLevel(logging.DEBUG)
     unittest.main()
