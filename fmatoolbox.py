@@ -103,8 +103,8 @@ class SectionHook(object):
     """This class is used as a post loading processing to the current section.
     """
     def __init__(self, section, attribute, opt_name):
-        if not issubclass(section.__class__, AbstractSection):
-            raise TypeError("First argument should be a subclass of Section.")
+        if not issubclass(section.__class__, _AbstractSection):
+            raise TypeError("First argument should be a subclass of _Section.")
         self.section = section
 
         if not isinstance(attribute, str):
@@ -145,8 +145,8 @@ class Config(object):
 
     def add_section(self, section):
         """Add a new Section object to the config. Should be a subclass of
-        AbstractSection."""
-        if not issubclass(section.__class__, AbstractSection):
+        _AbstractSection."""
+        if not issubclass(section.__class__, _AbstractSection):
             raise TypeError("argument should be a subclass of Section")
         self.sections[section.get_key_name()] = section
         return section
@@ -293,7 +293,7 @@ class Config(object):
 
 
 # -----------------------------------------------------------------------------
-class AbstractSection(object):
+class _AbstractSection(object):
     """This class is the parent class of all Section classes. You can not use
     it, you must implement abstract methods.
     """
@@ -357,10 +357,10 @@ class AbstractSection(object):
 
 
 # -----------------------------------------------------------------------------
-class Section(AbstractSection):
+class _Section(_AbstractSection):
     """Simple secton object, container for Elements"""
     def __init__(self, *args, **kwargs):
-        super(Section, self).__init__(*args, **kwargs)
+        super(_Section, self).__init__(*args, **kwargs)
         self.elements = OrderedDict()
 
     def add_element(self, elt):
@@ -411,7 +411,7 @@ class Section(AbstractSection):
         """
         if len(self.elements) < 1:
             return
-        super(Section, self).write_config_file(f, comments)
+        super(_Section, self).write_config_file(f, comments)
 
         for e in self.elements.values():
             e.write_config_file(f, comments)
@@ -419,7 +419,7 @@ class Section(AbstractSection):
 
 
 # -----------------------------------------------------------------------------
-class SimpleSection(Section):
+class SimpleSection(_Section):
     """A simple section object. This container car store elements or sub
     sections"""
 
@@ -438,7 +438,7 @@ class SimpleSection(Section):
 
 
 # -----------------------------------------------------------------------------
-class SubSection(Section):
+class SubSection(_Section):
 
     def get_representation(self, prefix="", suffix="\n"):
         res = []
@@ -465,7 +465,7 @@ class SubSection(Section):
 
 
 # -----------------------------------------------------------------------------
-class ListSection(AbstractSection):
+class ListSection(_AbstractSection):
     def __init__(self, name, *args, **kwargs):
         super(ListSection, self).__init__(*args, **kwargs)
         self.elements = OrderedDict()
@@ -784,7 +784,7 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
         self.e_type = list
         if not issubclass(rss.__class__, SubSection):
             raise TypeError("Argument should be a subclass of SubSection, \
-                            not :" + str(Section.__class__))
+                            not :" + str(_Section.__class__))
         self.rss = rss
 
     def load(self, fileParser, section_name):
