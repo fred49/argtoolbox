@@ -364,8 +364,8 @@ class _Section(_AbstractSection):
         self.elements = OrderedDict()
 
     def add_element(self, elt):
-        """Helper to add a element to the current section. The Element name will
-        be used as an identifier."""
+        """Helper to add a element to the current section. The Element name
+        will be used as an identifier."""
         if not isinstance(elt, Element):
             raise TypeError("argument should be a subclass of Element")
         self.elements[elt.get_name()] = elt
@@ -1021,8 +1021,8 @@ password=toto
 
     # create configuration
     myconfig = Config("sample-program",
-                    config_file=io.BytesIO(sample_config),
-                    desc="""Just a description for a sample program.
+                      config_file=io.BytesIO(sample_config),
+                      desc="""Just a description for a sample program.
 This program supports argcomplete.
 To enable it, run in bash terminal:
     eval "$(register-python-argcomplete fmatoolbox.py)"
@@ -1055,9 +1055,13 @@ To enable it, run in bash terminal:
         formatter_class=argparse.RawTextHelpFormatter)
     # pylint: disable-msg=W0142
     myparser.add_argument('-d', action="count",
-                        **myconfig.ldap.debug.get_arg_parse_arguments())
-    myparser.add_argument('-v', '--verbose', action="store_true", default=False)
-    myparser.add_argument('--version', action="version", version="%(prog)s 0.1")
+                          **myconfig.ldap.debug.get_arg_parse_arguments())
+    myparser.add_argument('-v', '--verbose',
+                          action="store_true",
+                          default=False)
+    myparser.add_argument('--version',
+                          action="version",
+                          version="%(prog)s 0.1")
 
     # reloading configuration with previous optional arguments
     # (example : config file name from argv, ...)
