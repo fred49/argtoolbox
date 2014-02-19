@@ -532,10 +532,10 @@ class ListSection(_AbstractSection):
 # pylint: disable-msg=R0902
 class Element(object):
     """
-    An Element could represent a option into the configuration file, this 
+    An Element could represent a option into the configuration file, this
     class lets you configure many requirements like default value, data
     type, if the option is mandatory, etc.
-    You can also defined if element could be supply by the command line 
+    You can also defined if element could be supply by the command line
     interface, default options for the cli, etc.
     """
 
@@ -846,11 +846,11 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
         ElementWithRelativeSubSection :
             name = list_of_section_name, value = sec_test1 sec_test2 sec_test3
 
-    So, this class will look for sections named sec_test1, sec_test2 and sec_test3.
-    The structure used to load the previous sections is second constructor argument
-    name "rss". It is a SubSection that will be used as a template.
-        ex : 
-            SubSection : 
+    This class will look for sections named sec_test1, sec_test2 and sec_test3.
+    The structure used to load the previous sections is second constructor
+    argument name "rss". It is a SubSection that will be used as a template.
+        ex :
+            SubSection :
                 - Element4
                 - Element5
                 - Element5
