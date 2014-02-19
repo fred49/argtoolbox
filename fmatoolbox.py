@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with LinShare user cli.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2013 Frédéric MARTIN
+# Copyright 2014 Frédéric MARTIN
 #
 # Contributors list:
 #
@@ -61,7 +61,11 @@ streamHandler.setFormatter(DEFAULT_LOGGING_FORMAT)
 
 # -----------------------------------------------------------------------------
 class DefaultHook(object):
-    """Abstract hook, do nothing"""
+    """
+    This class does nothing. This is the default class for creating your own
+    hook. After reading an option from the config file, you can apply a
+    postprocessing, like the base64 decoding or every thing you want.
+    """
 
     def __init__(self):
         pass
@@ -72,8 +76,8 @@ class DefaultHook(object):
 
 # -----------------------------------------------------------------------------
 class Base64ElementHook(DefaultHook):
-    """This class is used as a post reading processing in order to convert
-    base64 data stored into the config file in plain text data."""
+    """This hook is used as a post reading processing in order to convert
+    base64 data stored into the config file into plain text data."""
     def __init__(self, warning=False):
         super(Base64ElementHook, self).__init__()
         self.warning = warning
@@ -100,7 +104,14 @@ class Base64ElementHook(DefaultHook):
 
 # -----------------------------------------------------------------------------
 class SectionHook(object):
-    """This class is used as a post loading processing to the current section.
+    """
+    The SectionHook class is used during the configuration reloading
+    process. After the parsing of CLI arguments, all section hooks are
+    applied.
+    This hook lets you modify the attribute called "self.section".
+    The hook is looking for a CLI argument in "args" using "opt_name" as the
+    argument name. Then, the value is stored into section.attribute.
+
     """
     def __init__(self, section, attribute, opt_name):
         if not issubclass(section.__class__, _AbstractSection):
@@ -128,8 +139,7 @@ class SectionHook(object):
 class Config(object):
     # pylint: disable-msg=R0902
     """This is the entry point, this class will contains all Section and
-     Elements. All loading, configuration declaration and processing will be
-     done by this class."""
+     Elements."""
 
     def __init__(self, prog_name, config_file=None, desc=None,
                  mandatory=False):
@@ -358,7 +368,7 @@ class _AbstractSection(object):
 
 # -----------------------------------------------------------------------------
 class _Section(_AbstractSection):
-    """Simple secton object, container for Elements"""
+    """Simple abstract section object, container for Elements"""
     def __init__(self, *args, **kwargs):
         super(_Section, self).__init__(*args, **kwargs)
         self.elements = OrderedDict()
@@ -420,8 +430,12 @@ class _Section(_AbstractSection):
 
 # -----------------------------------------------------------------------------
 class SimpleSection(_Section):
-    """A simple section object. This container car store elements or sub
-    sections"""
+    """A simple section object. This class is used to declare a section that
+    should be into the configuration file.
+    Then you need to add Elements to this section.
+
+    mysection = SimpleSection("section_1")
+    """
 
     def __init__(self, name, *args, **kwargs):
         super(SimpleSection, self).__init__(*args, **kwargs)
@@ -439,6 +453,7 @@ class SimpleSection(_Section):
 
 # -----------------------------------------------------------------------------
 class SubSection(_Section):
+    """ TODO """
 
     def get_representation(self, prefix="", suffix="\n"):
         res = []
@@ -455,6 +470,7 @@ class SubSection(_Section):
         self.elements = OrderedDict()
         return newone
 
+    # pylint: disable-msg=W0613
     def __deepcopy__(self, *args):
         newone = type(self)()
         newone.__dict__.update(self.__dict__)
@@ -466,6 +482,7 @@ class SubSection(_Section):
 
 # -----------------------------------------------------------------------------
 class ListSection(_AbstractSection):
+    """ TODO """
     def __init__(self, name, *args, **kwargs):
         super(ListSection, self).__init__(*args, **kwargs)
         self.elements = OrderedDict()
@@ -514,11 +531,19 @@ class ListSection(_AbstractSection):
 # warning| [R0902, Element] Too many instance attributes (13/7)
 # pylint: disable-msg=R0902
 class Element(object):
+    """
+    An Element could represent a option into the configuration file, this 
+    class lets you configure many requirements like default value, data
+    type, if the option is mandatory, etc.
+    You can also defined if element could be supply by the command line 
+    interface, default options for the cli, etc.
+    """
 
+    # pylint: disable-msg=R0913
     def __init__(self, name, e_type=str, required=False, default=None,
                  conf_hidden=False, conf_required=False, desc=None,
                  hooks=None, hidden=False):
-        """Information about how to declare a element to load from a
+        """Information about how to declare a element which will be load from a
         configuration file.
 
     Keyword Arguments:
@@ -586,6 +611,10 @@ class Element(object):
         return self._name
 
     def get_representation(self, prefix="", suffix="\n"):
+        """This method build a array that will contain the string
+        representation of the current object. Every lines could be
+        prefixed and suffixed.
+        """
         res = []
         if self.hidden:
             res.append(prefix + " - " + str(self._name)
@@ -605,22 +634,24 @@ class Element(object):
         return newone
 
     def post_load(self):
+        """Every element hooks are applied by this method, just after the
+        loading process.
+        """
         for h in self.hooks:
             h(self)
 
-    def set_value(self, val):
-        if not instance(val, self.e_type):
-            raise TypeError(
-                "Element value from config called '%(name)s' \
-                should have the type : '%(e_type)s'"
-                % {"name": self._name, "e_type": self.e_type})
-        self.value = val
-
     def load(self, fileParser, section_name):
+        """The current element is loaded from the configuration file,
+        all constraints and requirements are checked.
+        Then element hooks are applied.
+        """
         self._load(fileParser, section_name)
         self.post_load()
 
     def _load(self, fileParser, section_name):
+        """The current element is loaded from the configuration file,
+        all constraints and requirements are checked.
+        """
         # pylint: disable-msg=W0621
         log = logging.getLogger('fmatoolbox')
         try:
@@ -696,6 +727,14 @@ class Element(object):
                 log.debug("Field not found : '" + self._name + "'")
 
     def get_arg_parse_arguments(self):
+        """
+        During the element declaration, all configuration file requirements
+        and all cli requirements have been described once.
+        This method will build a dict containing all argparse options.
+        It can be used to feed argparse.ArgumentParser.
+        You does not need to have multiple declarations.
+        """
+
         ret = dict()
         if self._required:
             if self.value is not None:
@@ -740,6 +779,18 @@ class Element(object):
 
 # -----------------------------------------------------------------------------
 class ElementWithSubSections(Element):
+    """ This class extends the default class Element. It offers you the power
+    to add sections (SubSection) inside a element.
+    The simple case is one section containing some elements.
+    But in some situation you may represent your data like a tree.
+    Section :
+        Element1 : name = port, value = 389
+        Element2 : name = address, value = 127.0.0.1
+        ElementWithSubSections
+            SubSection
+                Element1
+                Element2
+    """
 
     def __init__(self, *args, **kwargs):
         super(ElementWithSubSections, self).__init__(*args, **kwargs)
@@ -761,6 +812,10 @@ class ElementWithSubSections(Element):
         return res
 
     def add_section(self, section):
+        """You can add section inside a Element, the section must be a
+        subclass of SubSection. You can use this class to represent a tree.
+        """
+
         if not issubclass(section.__class__, SubSection):
             raise TypeError("Argument should be a subclass of SubSection, \
                              not :" + str(section.__class__))
@@ -779,6 +834,51 @@ class ElementWithSubSections(Element):
 # -----------------------------------------------------------------------------
 class ElementWithRelativeSubSection(ElementWithSubSections):
 
+    """ This class extends the default class Element. It offers you the power
+    to add sections (SubSection) inside a element.
+    The simple case is one section containing some elements.
+    But in some situation you may represent your data like a tree and, you want
+    to search a section dynamically.
+
+    Section :
+        Element1 : name = port, value = 389
+        Element2 : name = address, value = 127.0.0.1
+        ElementWithRelativeSubSection :
+            name = list_of_section_name, value = sec_test1 sec_test2 sec_test3
+
+    So, this class will look for sections named sec_test1, sec_test2 and sec_test3.
+    The structure used to load the previous sections is second constructor argument
+    name "rss". It is a SubSection that will be used as a template.
+        ex : 
+            SubSection : 
+                - Element4
+                - Element5
+                - Element5
+
+    This class could be used to store, inside a element, a list of complex
+    structures.
+
+    At the end, when ElementWithRelativeSubSection will be loaded,
+    you should have the following struture :
+    Section :
+        Element1 : name = port, value = 389
+        Element2 : name = address, value = 127.0.0.1
+        ElementWithRelativeSubSection :
+            SubSection : sec_test1
+                - Element4
+                - Element5
+                - Element5
+            SubSection : sec_test2
+                - Element4
+                - Element5
+                - Element5
+            SubSection : sec_test3
+                - Element4
+                - Element5
+                - Element5
+
+    """
+
     def __init__(self, name, rss, **kwargs):
         super(ElementWithRelativeSubSection, self).__init__(name, **kwargs)
         self.e_type = list
@@ -793,7 +893,7 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
             for sec_name in self.value:
                 try:
                     sec = copy.deepcopy(self.rss, None)
-                    sec._name = sec_name
+                    setattr(sec, '_name', sec_name)
                     self.sections[sec_name] = sec
                     sec.load(fileParser)
                 except ValueError as e:
@@ -826,10 +926,13 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
 
 # -----------------------------------------------------------------------------
 class DefaultCommand(object):
+    """This class do nothing, this is just the default structure to implement
+    your own class. Use this class as the base for every the command line
+    action you want to create."""
 
     def __init__(self, config=None):
         self.log = logging.getLogger(
-            'fmatoolbox' + "." + str(self.__class__.__name__.lower()))
+            'fmatoolbox.' + str(self.__class__.__name__.lower()))
         self.config = config
         self.protected_args = ['password']
 
@@ -844,6 +947,8 @@ class DefaultCommand(object):
             self.log.debug(i + " : " + str(getattr(dict_tmp, i)))
         self.log.debug("Namespace : end.")
 
+    # pylint: disable-msg=W0613
+    # pylint: disable-msg=R0201
     def complete(self, args,  prefix):
         """Auto complete method, args is comming from argparse and prefix is
         the input data from command line.
@@ -853,6 +958,7 @@ class DefaultCommand(object):
 
 # -----------------------------------------------------------------------------
 class TestCommand(DefaultCommand):
+    """Just a simple command, using the default command class."""
 
     def __call__(self, args):
         super(TestCommand, self).__call__(args)
@@ -869,6 +975,8 @@ class TestCommand(DefaultCommand):
 
 # -----------------------------------------------------------------------------
 class DefaultCompleter(object):
+    """ TODO
+    """
     def __init__(self, func_name="complete"):
         self.func_name = func_name
 
@@ -882,11 +990,11 @@ class DefaultCompleter(object):
                 debug("\t" + str(j))
 
             args = kwargs.get('parsed_args')
+            # pylint: disable-msg=W0612
             l_parser = kwargs.get('parser')
             #a = parser.parse_known_args()
-            a = args
             debug("\n-----------------------------")
-            debug(str(a))
+            debug(str(args))
 
             # getting form args the current Command and looking for a method
             # called by default 'complete'.
@@ -895,12 +1003,14 @@ class DefaultCompleter(object):
             if fn:
                 return fn(args, prefix)
 
+        # pylint: disable-msg=W0703
         except Exception as e:
             debug("\nERROR:An exception was caught :" + str(e) + "\n")
 
 
 # -----------------------------------------------------------------------------
 class DefaultProgram(object):
+    """ TODO """
 
     def __init__(self, parser, config):
         self.parser = parser
