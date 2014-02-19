@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with LinShare user cli.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2013 Frédéric MARTIN
+# Copyright 2014 Frédéric MARTIN
 #
 # Contributors list :
 #
@@ -25,60 +25,50 @@
 #
 
 
-import os
 import logging
-import getpass
-import base64
-import copy
-import datetime
-from ordereddict import OrderedDict
-import sys
-import ConfigParser
+from fmatoolbox import Config, Element, SimpleSection, Base64ElementHook
+from fmatoolbox import DEBUG_LOGGING_FORMAT, streamHandler
 
-from fmatoolbox import Base64DataHook , Config , Element , Section , myDebugFormat , streamHandler
-
-# ---------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # MAIN
-# ---------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-if __name__ == "__main__" :
-	pass
+if __name__ == "__main__":
+    pass
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
-streamHandler.setFormatter(myDebugFormat)
+streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
 # global logger variable
 log = logging.getLogger('fmatoolbox-config')
 
 
-c = Config("linshare-cli" , description = " simple user cli for linshare")
+conf = Config("linshare-cli", desc=" simple user cli for linshare")
 
-#def __init__(self, name, description = None, prefix = None, suffix = None):
-s = c.add_section(Section("server"))
+sec = conf.add_section(SimpleSection("server"))
 
-#def __init__(self, name, e_type = str, required = False, default = None, required_as_arg = False, description = None, hooks = [ DefaultHook() ] ):
-s.add_element(Element('host', default = 'http://localhost:8080/linshare'))
-#s.add_element(Element('real'))
-#s.add_element(Element('user'))
-s.add_element(Element('password', hidden = True, hooks = [ Base64DataHook(),] ))
-#s.add_element(Element('application_name'))
-s.add_element(Element('config_file'))
-s.add_element(Element('server_section'))
-s.add_element(Element('nocache' , e_type=bool, default=False))
-s.add_element(Element('debug' , e_type=int, default=0))
-s.add_element(Element('verbose'))
-s.add_element(Element('toto', e_type=int, default = 8))
-#s.add_element(Element('tata', e_type=int, required = True))
-s.add_element_list([ 'real' , 'user' , 'application_name' ])
+sec.add_element(Element('host', default='http://localhost:8080/linshare'))
+#sec.add_element(Element('real'))
+#sec.add_element(Element('user'))
+sec.add_element(Element(
+    'password', hidden=True, hooks=[Base64ElementHook(), ]))
+#sec.add_element(Element('application_name'))
+sec.add_element(Element('config_file'))
+sec.add_element(Element('server_section'))
+sec.add_element(Element('nocache', e_type=bool, default=False))
+sec.add_element(Element('debug', e_type=int, default=0))
+sec.add_element(Element('verbose'))
+sec.add_element(Element('toto', e_type=int, default=8))
+#sec.add_element(Element('tata', e_type=int, required=True))
+sec.add_element_list(['real', 'user', 'application_name'])
 
-s = c.get_default_section()
-s.add_element(Element('tato', e_type=int, default = 8))
+sec = conf.get_default_section()
+sec.add_element(Element('tato', e_type=int, default=8))
 
-print c
-c.load()
+print conf
+conf.load()
 
-print c.default.tato
-print c.server.host
-print c.server.host.get_arg_parse_arguments()
-
+print conf.default.tato
+print conf.server.host
+print conf.server.host.get_arg_parse_arguments()
