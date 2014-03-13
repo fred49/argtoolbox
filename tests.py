@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 
-# This file is part of fmatoolbox.
+# This file is part of argtoolbox.
 #
-# fmatoolbox is free software: you can redistribute it and/or modify
+# argtoolbox is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# fmatoolbox is distributed in the hope that it will be useful,
+# argtoolbox is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -29,7 +29,7 @@ import unittest
 import io
 import sys
 import logging
-from fmatoolbox import Config, Element, Base64ElementHook
+from argtoolbox import Config, Element, Base64ElementHook
 
 
 # pylint: disable-msg=R0904
@@ -209,7 +209,7 @@ elt_list_value=test aa aarrr kkkk mmmmm
         self.assertRaises(ValueError, self.c.load)
 
 if __name__ == '__main__':
-    LOG = logging.getLogger('fmatoolbox')
+    LOG = logging.getLogger('argtoolbox')
     STREAMHANDLER = logging.StreamHandler(sys.stdout)
     STREAMHANDLER.setFormatter(
         logging.Formatter(

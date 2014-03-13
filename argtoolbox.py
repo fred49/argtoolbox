@@ -3,14 +3,14 @@
 # PYTHON_ARGCOMPLETE_OK
 
 
-# This file is part of fmatoolbox.
+# This file is part of argtoolbox.
 #
-# fmatoolbox is free software: you can redistribute it and/or modify
+# argtoolbox is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# fmatoolbox is distributed in the hope that it will be useful,
+# argtoolbox is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -37,7 +37,7 @@ import argparse
 
 # -----------------------------------------------------------------------------
 # global logger variable
-#log = logging.getLogger('fmatoolbox')
+#log = logging.getLogger('argtoolbox')
 #log.setLevel(logging.INFO)
 #log.setLevel(logging.DEBUG)
 # logger formats
@@ -89,7 +89,7 @@ class Base64ElementHook(DefaultHook):
                 elt.value = data
             except TypeError as ex:
                 # pylint: disable-msg=W0621
-                log = logging.getLogger('fmatoolbox')
+                log = logging.getLogger('argtoolbox')
                 if self.warning:
                     log.warn("current field '%(name)s' is not \
                         stored in the configuration file with \
@@ -169,7 +169,7 @@ class Config(object):
         """One you have added all your configuration data (Section, Element,
         ...) you need to load data from the config file."""
         # pylint: disable-msg=W0621
-        log = logging.getLogger('fmatoolbox')
+        log = logging.getLogger('argtoolbox')
         discoveredFileList = []
         if self.config_file:
             if isinstance(self.config_file, str):
@@ -255,7 +255,7 @@ class Config(object):
 
         # Reloading
         # pylint: disable-msg=W0621
-        log = logging.getLogger('fmatoolbox')
+        log = logging.getLogger('argtoolbox')
         log.debug("reloading configuration ...")
         if args.config_file:
             self.fileParser.read(args.config_file)
@@ -287,7 +287,7 @@ class Config(object):
         properties.
         """
         # pylint: disable-msg=W0621
-        log = logging.getLogger('fmatoolbox')
+        log = logging.getLogger('argtoolbox')
         with open(output, 'w') as f:
             if comments:
                 f.write("#####################################\n")
@@ -399,7 +399,7 @@ class _Section(_AbstractSection):
                 e.load(fileParser, section)
         except ConfigParser.NoSectionError as e:
             # pylint: disable-msg=W0621
-            log = logging.getLogger('fmatoolbox')
+            log = logging.getLogger('argtoolbox')
             if self._required:
                 log.error("Required section : " + section)
                 raise ValueError(e)
@@ -497,7 +497,7 @@ class ListSection(_AbstractSection):
                 self.elements[key] = fileParser.get(section, key)
         except ConfigParser.NoSectionError as e:
             # pylint: disable-msg=W0621
-            log = logging.getLogger('fmatoolbox')
+            log = logging.getLogger('argtoolbox')
             if self._required:
                 log.error("Required section : " + section)
                 raise ValueError(e)
@@ -653,7 +653,7 @@ class Element(object):
         all constraints and requirements are checked.
         """
         # pylint: disable-msg=W0621
-        log = logging.getLogger('fmatoolbox')
+        log = logging.getLogger('argtoolbox')
         try:
             log.debug("looking for field (section=" + section_name
                       + ") : " + self._name)
@@ -898,7 +898,7 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
                     sec.load(fileParser)
                 except ValueError as e:
                     # pylint: disable-msg=W0621
-                    log = logging.getLogger('fmatoolbox')
+                    log = logging.getLogger('argtoolbox')
                     error = []
                     error.append("Missing relative section, attribute : ")
                     error.append("'[" + section_name + "]." + self._name)
@@ -932,7 +932,7 @@ class DefaultCommand(object):
 
     def __init__(self, config=None):
         self.log = logging.getLogger(
-            'fmatoolbox.' + str(self.__class__.__name__.lower()))
+            'argtoolbox.' + str(self.__class__.__name__.lower()))
         self.config = config
         self.protected_args = ['password']
 
@@ -1040,7 +1040,7 @@ class DefaultProgram(object):
             return True
         else:
             # pylint: disable-msg=W0621
-            log = logging.getLogger('fmatoolbox')
+            log = logging.getLogger('argtoolbox')
             try:
                 # run command
                 args.__func__(args)
@@ -1135,7 +1135,7 @@ password=toto
                       desc="""Just a description for a sample program.
 This program supports argcomplete.
 To enable it, run in bash terminal:
-    eval "$(register-python-argcomplete fmatoolbox.py)"
+    eval "$(register-python-argcomplete argtoolbox.py)"
 """)
 
     # section ldap
