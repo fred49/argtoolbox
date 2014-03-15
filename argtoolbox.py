@@ -962,15 +962,22 @@ class TestCommand(DefaultCommand):
 
     def __call__(self, args):
         super(TestCommand, self).__call__(args)
-        print "Test command :"
-        print "=============="
-        print "argv : "
-        print "-------"
-        print args
-        print "---------"
-        print "config : "
-        print "---------"
+        print ""
+        print "This is the beginning of the TestCommand class."
+        print ""
+
+        print "The loaded configuration : "
+        print "---------------------------"
         print self.config
+        print ""
+
+        print "The command line arguments (argv) : "
+        print "------------------------------------"
+        print args
+
+        print ""
+        print "This is the end of the TestCommand class."
+        print ""
 
 
 # -----------------------------------------------------------------------------
@@ -1012,7 +1019,7 @@ class DefaultCompleter(object):
 class DefaultProgram(object):
     """ TODO """
 
-    def __init__(self, parser, config):
+    def __init__(self, parser, config = None):
         self.parser = parser
         self.config = config
 
@@ -1027,13 +1034,14 @@ class DefaultProgram(object):
         # parse cli arguments
         args = self.parser.parse_args()
 
-        if getattr(args, 'debug'):
+        if getattr(args, 'debug', False):
             llog = logging.getLogger()
             llog.setLevel(logging.DEBUG)
             streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
-            print "------------- config ------------------"
-            print self.config
-            print "----------- processing ----------------"
+            if self.config:
+                print "debug>>>----------- config ------------------"
+                print self.config
+                print "debug----------- processing --------------<<<<"
 
             # run command
             args.__func__(args)
@@ -1052,6 +1060,91 @@ class DefaultProgram(object):
             except Exception as a:
                 log.error("unexcepted error : " + str(a))
             return False
+
+
+# -----------------------------------------------------------------------------
+class BasicProgram(object):
+    """ TODO """
+
+    def __init__(self, name, config_file=None, desc=None,
+                 mandatory=False):
+
+        # create configuration
+        self.config = Config(name, config_file = config_file, desc = desc,
+                             mandatory = mandatory)
+        self.parser = None
+
+        self.log = self.init_logger()
+
+    def init_logger(self):
+        # logger
+        log = logging.getLogger()
+        log.setLevel(logging.INFO)
+        # logger handlers
+        log.addHandler(streamHandler)
+
+        # debug mode
+        # if you want to enable debug during class construction, file
+        # configuration loading, ..., you need to modify the logger level here.
+        #log.setLevel(logging.DEBUG)
+        #streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
+        return log
+
+    def add_config_options(self):
+        """ You can override this method in order to add your options to the
+        config object."""
+        pass
+
+    def init_parser(self):
+        # arguments parser
+        self.parser = self.config.get_parser()
+        self.parser.add_argument('-v', '--verbose',
+                                 action="store_true",
+                                 default=False)
+        self.parser.add_argument('--version',
+                                 action="version",
+                                 version="%(prog)s 0.1")
+
+    def add_pre_arguments(self):
+        """ You can override this method in order to add your command line
+        arguments to the argparse parser. The configuration file is already
+        loaded at this time."""
+        pass
+
+    def add_commands(self):
+        """ You can override this method in order to add your command line
+        arguments to the argparse parser. The configuration file is already
+        loaded at this time."""
+        pass
+
+    def __call__(self):
+
+        # adding some user options to the config object
+        self.add_config_options()
+
+        # loading default configuration from the file
+        self.config.load()
+
+        # initialisation of the cli parser,
+        # some default arguments are also added.
+        self.init_parser()
+
+        # adding some user arguments
+        self.add_pre_arguments()
+
+        # reloading configuration with previous optional arguments
+        # (example : config file name from argv, ...)
+        self.config.reload()
+
+        # adding all commands
+        self.add_commands()
+
+        # run
+        run = DefaultProgram(self.parser, self.config)
+        if run():
+            sys.exit(0)
+        else:
+            sys.exit(1)
 
 
 # -----------------------------------------------------------------------------
@@ -1119,14 +1212,14 @@ password=toto
 \n"""
 
     # logger
-    log = logging.getLogger()
-    log.setLevel(logging.INFO)
+    glog = logging.getLogger()
+    glog.setLevel(logging.INFO)
     # logger handlers
-    log.addHandler(streamHandler)
+    glog.addHandler(streamHandler)
     # debug mode
     # if you need debug during class construction, file config loading, ...,
     # you need to modify the logger level here.
-    #log.setLevel(logging.DEBUG)
+    #glog.setLevel(logging.DEBUG)
     #streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
     # create configuration
@@ -1186,7 +1279,7 @@ To enable it, run in bash terminal:
     parser_tmp.set_defaults(__func__=TestCommand(myconfig))
 
     # run
-    prog = DefaultProgram(myparser, myconfig)
+    prog = DefaultProgram(myparser)
     if prog():
         sys.exit(0)
     else:
