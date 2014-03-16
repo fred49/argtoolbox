@@ -5,12 +5,12 @@ Description
 -----------
 
 It helps to build a command line tool with argparse module.
-It also use ConfigParser module to store default values into a 
+It also use ConfigParser module to store default values into a
 configuration file store in your profile.
 
 It checks the data type, if it is required, etc... without repeat your
 constraint once for the config file, and another time for the cli parser.
-Usefull trick, data store in the configuration file can be used as the 
+Usefull trick, data store in the configuration file can be used as the
 default value of the argparse argument.
 
 This lets you focus on the command you want to do, not the input processing
@@ -126,7 +126,7 @@ Now you can show the help menu using the following command :
 
 Or run your command :
 
- ``$  ./sample-program.py test --host 127.0.0.1``
+``$  ./sample-program.py test --host 127.0.0.1``
 
 **Console ouput :**
 
@@ -149,7 +149,7 @@ Advanced usage
 --------------
 
 At this point, this program does not do much more than the argparse module can
-do. 
+do.
 In the cas you have a lot of command and option, it could be usefull to store
 default values in a configuration file like ``sample-program.cfg``
 
@@ -173,7 +173,7 @@ First of all, you just need the following classes to build your own script :
 * **Base64ElementHook :** This hook is used as a post reading processing in
   order to convert base64 data stored into the config file into plain text data.
 
-  
+
 
 2. Declaration :
 ~~~~~~~~~~~~~~~~
@@ -188,17 +188,10 @@ lines of code.
    2**)
 #. We override the default method called ``add_config_options``. (**Step 3**)
 #. We declare the section named ``ldap`` that we are looking for.
-#. We declare all the fields store into the previous section. For each fied, you
-can says if it is required, the default value, the type, an optional description.
-See the documentatino for more details. (**Step 5**).
-#. The we declare all argparse arguments using the previous configuration declaration.
-This is very usefull because the data store into the configuration file are used
-as the default value for the argparse argument. The description, the type,
-required or not, ... declared in the ``add_config_options`` method are used to
-configure the parser argument. No need to repeat your self. (**Step 6**)
+#. We declare all the fields store into the previous section. For each fied, you can says if it is required, the default value, the type, an optional description. See the documentatino for more details. (**Step 5**).
+#. The we declare all argparse arguments using the previous configuration declaration. This is very usefull because the data store into the configuration file are used as the default value for the argparse argument. The description, the type, required or not, ... declared in the ``add_config_options`` method are used to configure the parser argument. No need to repeat your self. (**Step 6**)
 #. Declaration of the ``test`` argument using TestCommand class. (**Step 7**)
-#. Finally you just have to instanciate your class MyProgram, the first argument
-is the program name. (**Step 8**)
+#. Finally you just have to instanciate your class MyProgram, the first argument is the program name. (**Step 8**)
 #. We override the default config file name ``'.<program name>.cfg'``. (**Step 9**)
 #. We launch the program. (**Step 10**)
 
@@ -279,5 +272,40 @@ is the program name. (**Step 8**)
                          desc="""Just a description for a sample program.""")
         # Step 10
         PROG()
+
+3. Utilisation :
+~~~~~~~~~~~~~~~
+
+Now you can run your command :
+
+``$ ./sample-program2.py --host an.other.host.com test``
+
+**Console ouput :**
+
+.. code-block:: python
+
+    This is the beginning of the TestCommand class.
+
+    The loaded configuration :
+    ---------------------------
+    Configuration of sample-program :
+
+            Section LDAP
+             - debug : 0
+             - host : 127.0.0.1
+             - account : cn=admin,dc=nodomain
+             - port : 389
+             - password : xxxxxxxx
+
+
+    The command line arguments (argv) :
+    ------------------------------------
+    Namespace(__func__=<argtoolbox.argtoolbox.TestCommand object at 0xb7199f8c>, config_file=None, debug=0, host='an.other.host.com', port=389, verbose=False)
+
+    This is the end of the TestCommand class.
+
+You can see the variable ``host`` contains the input message ``an.other.host.com`` into the
+args object.
+The option ``port`` contains the default value ``389``.
 
 
