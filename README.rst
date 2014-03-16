@@ -117,12 +117,12 @@ Now you can show the help menu using the following command :
 
 .. code-block:: python
 
-    usage: sample-program test [-h] --message MESSAGE
+    usage: sample-program test [-h] --host HOST [--port PORT]
 
     optional arguments:
-      -h, --help         show this help message and exit
-      --message MESSAGE
-
+      -h, --help   show this help message and exit
+      --host HOST
+      --port PORT
 
 Or run your command :
 
@@ -305,7 +305,5 @@ Now you can run your command :
     This is the end of the TestCommand class.
 
 You can see the variable ``host`` contains the input message ``an.other.host.com`` into the
-args object.
-The option ``port`` contains the default value ``389``.
-
-
+args object. The option ``port`` contains the default value ``389``.
+You can also acces to the values store into the configuration file like ``account`` or ``password`` which can not be override by the CLI.
