@@ -130,6 +130,8 @@ Or run your command :
 
 **Console ouput :**
 
+.. code-block:: python
+
     This is the beginning of the TestCommand class.
     The command line arguments (argv) :
     -----------------------------------
@@ -138,9 +140,9 @@ Or run your command :
 
     This is the end of the TestCommand class.
 
-You can see the variable `host` contains the input message `127.0.0.1` into the
+You can see the variable ``host`` contains the input message ``127.0.0.1`` into the
 args object.
-The option `port` contains the default value `3000`.
+The option ``port`` contains the default value ``3000``.
 
 
 Advanced usage
@@ -149,7 +151,7 @@ Advanced usage
 At this point, this program does not do much more than the argparse module can
 do. 
 In the cas you have a lot of command and option, it could be usefull to store
-default values in a configuration file like `sample-program.cfg`
+default values in a configuration file like ``sample-program.cfg``
 
 
 1. Imports :
@@ -180,25 +182,25 @@ There is a script called sample-program2.py which contains all the following
 lines of code.
 
 
-1. Instead of creating a config file, we will use an in-memory config file
+#. Instead of creating a config file, we will use an in-memory config file
    (**Step 1**)
-2. You create an other class MyProgram (which extends the BasicProgram) (**Step
+#. You create an other class MyProgram (which extends the BasicProgram) (**Step
    2**)
-3. We override the default method called `add_config_options`. (**Step 3**)
-4. We declare the section named `ldap` that we are looking for. (**Step 4**)
-5. We declare all the fields store into the previous section. For each fied,
-you can says if it is required, the default value, the type, an optional description.
-See the documentatino for more details. (**Step 5**)
-6. The we declare all argparse arguments using the previous configuration declaration.
+#. We override the default method called ``add_config_options``. (**Step 3**)
+#. We declare the section named ``ldap`` that we are looking for.
+#. We declare all the fields store into the previous section. For each fied, you
+can says if it is required, the default value, the type, an optional description.
+See the documentatino for more details. (**Step 5**).
+#. The we declare all argparse arguments using the previous configuration declaration.
 This is very usefull because the data store into the configuration file are used
 as the default value for the argparse argument. The description, the type,
-required or not, ... declared in the `add_config_options` method are used to
+required or not, ... declared in the ``add_config_options`` method are used to
 configure the parser argument. No need to repeat your self. (**Step 6**)
-7. Declaration of the `test` argument using TestCommand class. (**Step 7**)
-8. Finally you just have to instanciate your class MyProgram, the first argument
+#. Declaration of the ``test`` argument using TestCommand class. (**Step 7**)
+#. Finally you just have to instanciate your class MyProgram, the first argument
 is the program name. (**Step 8**)
-9. We override the default config file name `'.<program name>.cfg'`. (**Step 9**)
-10. We launch the program. (**Step 10**)
+#. We override the default config file name ``'.<program name>.cfg'``. (**Step 9**)
+#. We launch the program. (**Step 10**)
 
 
 .. code-block:: python
