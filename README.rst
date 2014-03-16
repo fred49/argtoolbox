@@ -56,8 +56,6 @@ lines of code.
 5. Finally you just have to instanciate your class MyProgram and run it. (**Step 5**).
 
 
-
-
 .. code-block:: python
 
     #! /usr/bin/env python2
@@ -116,6 +114,7 @@ Now you can show the help menu using the following command :
 `$ ./sample-program.py test -h`
 
 __Console ouput :__
+
 .. code-block:: python
 
     usage: sample-program test [-h] --message MESSAGE
@@ -130,6 +129,7 @@ Or run your command :
 `$ ./sample-program.py test --host 127.0.0.1`
 
 __Console ouput :__
+
 .. code-block:: python
 
     This is the beginning of the TestCommand class.
