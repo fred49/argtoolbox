@@ -23,9 +23,9 @@ arguments through argcomplete module.
 Installation
 ------------
 
-You can install dependencies using : `pip install -r requirements.txt`.
+You can install dependencies using : ``pip install -r requirements.txt``.
 
-Then, you can install the argtoolbox module : `pip install argtoolbox`.
+Then, you can install the argtoolbox module : ``pip install argtoolbox``.
 
 
 QuickStart : Very Basic Usage
@@ -36,10 +36,10 @@ QuickStart : Very Basic Usage
 
 First of all, you just need the following classes to build your own script :
 
-* __DefaultCommand :__ The default class to extend in order to create your own
+* **DefaultCommand :** The default class to extend in order to create your own
   command class.
 
-* __BasicProgram :__ The most simple program to run your command classes.
+* **BasicProgram :** The most simple program to run your command classes.
 
 
 2. Declaration :
@@ -49,10 +49,10 @@ There is a script called sample-program.py which contains all the following
 lines of code.
 
 1. First you have to create your command class TestCommand. (**Step 1**)
-2. In the `__call__` method, you can do every thing you want. The first and only
+2. In the ``__call__`` method, you can do every thing you want. The first and only
    arg of this method is the args object created by Argparse.parser. (**Step 2**)
 3. You create an other class MyProgram (which extends the BasicProgram) (**Step 3**)
-4. Now you create your  `argparse.parser` and your declare your argument, option and command. (**Step 4**)
+4. Now you create your  ``argparse.parser`` and your declare your argument, option and command. (**Step 4**)
 5. Finally you just have to instanciate your class MyProgram and run it. (**Step 5**).
 
 
@@ -111,9 +111,9 @@ lines of code.
 
 Now you can show the help menu using the following command :
 
-`$ ./sample-program.py test -h`
+``$ ./sample-program.py test -h``
 
-__Console ouput :__
+**Console ouput :**
 
 .. code-block:: python
 
@@ -126,9 +126,9 @@ __Console ouput :__
 
 Or run your command :
 
-`$ ./sample-program.py test --host 127.0.0.1`
+    $ ./sample-program.py test --host 127.0.0.1
 
-__Console ouput :__
+**Console ouput :**
 
 .. code-block:: python
 
@@ -159,18 +159,18 @@ default values in a configuration file like `sample-program.cfg`
 
 First of all, you just need the following classes to build your own script :
 
-* __TestCommand :__ This command class will print to stdout the inputs args and
+* **TestCommand :** This command class will print to stdout the inputs args and
   the configuration file content.
 
-* __BasicProgram :__ The most simple program to run your command classes.
+* **BasicProgram :** The most simple program to run your command classes.
 
-* __SimpleSection :__ This class is used to declare a Section in the config file
+* **SimpleSection :** This class is used to declare a Section in the config file
   (ConfigFile)
 
-* __Element :__ This class is used to declare an Option (a field) in the
+* **Element :** This class is used to declare an Option (a field) in the
   previous section.
 
-* __Base64ElementHook :__ This hook is used as a post reading processing in
+* **Base64ElementHook :** This hook is used as a post reading processing in
   order to convert base64 data stored into the config file into plain text data.
 
   
