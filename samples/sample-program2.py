@@ -3,9 +3,9 @@
 # PYTHON_ARGCOMPLETE_OK
 
 import io
-from argtoolbox.argtoolbox import BasicProgram
-from argtoolbox.argtoolbox import TestCommand
-from argtoolbox.argtoolbox import SimpleSection, Element, Base64ElementHook
+from argtoolbox import BasicProgram
+from argtoolbox import TestCommand
+from argtoolbox import SimpleSection, Element, Base64ElementHook
 
 # Step 1
 SAMPLE_CONFIG = """

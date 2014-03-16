@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
-from argtoolbox.argtoolbox import DefaultCommand
-from argtoolbox.argtoolbox import BasicProgram
+from argtoolbox import DefaultCommand
+from argtoolbox import BasicProgram
 
 # Step 1
 class TestCommand(DefaultCommand):
