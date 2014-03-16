@@ -126,11 +126,9 @@ Now you can show the help menu using the following command :
 
 Or run your command :
 
-    $ ./sample-program.py test --host 127.0.0.1
+ ``$  ./sample-program.py test --host 127.0.0.1``
 
 **Console ouput :**
-
-.. code-block:: python
 
     This is the beginning of the TestCommand class.
     The command line arguments (argv) :
