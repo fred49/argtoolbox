@@ -291,8 +291,8 @@ class Config(object):
         with open(output, 'w') as f:
             if comments:
                 f.write("#####################################\n")
-                f.write("Description :\n")
-                f.write("-------------\n")
+                f.write("# Description :\n")
+                f.write("# -------------\n#")
                 f.write(self._desc)
                 f.write("\n\n")
 
@@ -357,7 +357,7 @@ class _AbstractSection(object):
         """
         if comments:
             f.write("#####################################\n")
-            f.write("# Section : " + "".join(self.get_representation()) + "\n")
+            f.write("# Section : " + "#".join(self.get_representation()) + "\n")
             f.write("#####################################\n")
         f.write("[" + self._name + "]\n")
         if self._desc and comments:
