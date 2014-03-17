@@ -23,9 +23,7 @@ arguments through argcomplete module.
 Installation
 ------------
 
-You can install dependencies using : ``pip install -r requirements.txt``.
-
-Then, you can install the argtoolbox module : ``pip install argtoolbox``.
+You can install this module using : ``pip install argtoolbox``.
 
 
 QuickStart : Very Basic Usage
