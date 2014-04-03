@@ -37,8 +37,8 @@ class MyProgram(BasicProgram):
         parser_tmp.set_defaults(__func__=TestCommand(self.config))
 
 
+PROG = MyProgram("sample-program",
+                 desc="""Just a description for a sample program.""")
 if __name__ == "__main__":
 
-    PROG = MyProgram("sample-program",
-                        desc="""Just a description for a sample program.""")
     PROG()
