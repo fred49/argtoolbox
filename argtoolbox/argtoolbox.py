@@ -292,14 +292,14 @@ class Config(object):
             if comments:
                 f.write("#####################################\n")
                 f.write("# Description :\n")
-                f.write("# -------------\n#")
+                f.write("# -------------\n# ")
                 f.write(self._desc)
                 f.write("\n\n")
 
             for s in self.sections.values():
                 log.debug("loading section : " + s.get_section_name())
                 s.write_config_file(f, comments)
-        log.debug("config file generation complete : " + str(output))
+        log.debug("config file generation completed : " + str(output))
 
 
 # -----------------------------------------------------------------------------
