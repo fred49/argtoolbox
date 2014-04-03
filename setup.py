@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import glob
 from setuptools import setup, find_packages
 import codecs
 import os
@@ -79,4 +80,5 @@ setup(
                         'argcomplete',
                         'ConfigParser',
                         'ordereddict'],
+    scripts = glob.glob('bin/*'),
 )
