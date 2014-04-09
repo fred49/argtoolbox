@@ -118,7 +118,7 @@ parser_tmp = subparsers.add_parser(
     'generate',
     help="generate the default pref file")
 parser_tmp.add_argument('--output', action="store")
-parser_tmp.add_argument('--intput', action="store", dest="program", required=True)
+parser_tmp.add_argument('--input', action="store", dest="program", required=True)
 parser_tmp.add_argument(
     '-n',
     dest="nocomments",
