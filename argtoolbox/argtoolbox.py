@@ -142,9 +142,10 @@ class Config(object):
      Elements."""
 
     def __init__(self, prog_name, config_file=None, desc=None,
-                 mandatory=False):
+                 mandatory=False, use_config_file=True):
         self.prog_name = prog_name
         self.config_file = config_file
+        self.use_config_file = use_config_file
         self._desc = desc
         self.mandatory = mandatory
 
@@ -166,6 +167,12 @@ class Config(object):
         return self._default_section
 
     def load(self, exit_on_failure=False):
+        """One you have added all your configuration data (Section, Element,
+        ...) you need to load data from the config file."""
+        if self.use_config_file:
+            self._load(exit_on_failure)
+
+    def _load(self, exit_on_failure):
         """One you have added all your configuration data (Section, Element,
         ...) you need to load data from the config file."""
         # pylint: disable-msg=W0621
@@ -215,13 +222,14 @@ class Config(object):
         """
         self.parser = argparse.ArgumentParser(prog=self.prog_name,
                                               description=self._desc,
-                                              add_help=False,  **kwargs)
+                                              add_help=False, **kwargs)
         # help is removed because parser.parse_known_args() show help,
         # often partial help. help action will be added during
         # reloading step for parser.parse_args()
-        self.parser.add_argument('-c', '--config-file',
-                                 action="store",
-                                 help="Other configuration file.")
+        if self.use_config_file:
+            self.parser.add_argument('-c', '--config-file',
+                                     action="store",
+                                     help="Other configuration file.")
         return self.parser
 
     def reload(self, hooks=None):
@@ -254,15 +262,16 @@ class Config(object):
                                  help='show this help message and exit')
 
         # Reloading
-        # pylint: disable-msg=W0621
-        log = logging.getLogger('argtoolbox')
-        log.debug("reloading configuration ...")
-        if args.config_file:
-            self.fileParser.read(args.config_file)
-        for s in self.sections.values():
-            log.debug("loading section : " + s.get_section_name())
-            s.load(self.fileParser)
-        log.debug("configuration reloaded.")
+        if self.use_config_file:
+            # pylint: disable-msg=W0621
+            log = logging.getLogger('argtoolbox')
+            log.debug("reloading configuration ...")
+            if args.config_file:
+                self.fileParser.read(args.config_file)
+            for s in self.sections.values():
+                log.debug("loading section : " + s.get_section_name())
+                s.load(self.fileParser)
+            log.debug("configuration reloaded.")
 
     def __getattr__(self, name):
         if name.lower() == "default":
@@ -286,20 +295,21 @@ class Config(object):
         sample values, required flags, using the configuration object
         properties.
         """
-        # pylint: disable-msg=W0621
-        log = logging.getLogger('argtoolbox')
-        with open(output, 'w') as f:
-            if comments:
-                f.write("#####################################\n")
-                f.write("# Description :\n")
-                f.write("# -------------\n# ")
-                f.write(self._desc)
-                f.write("\n\n")
+        if self.use_config_file:
+            # pylint: disable-msg=W0621
+            log = logging.getLogger('argtoolbox')
+            with open(output, 'w') as f:
+                if comments:
+                    f.write("#####################################\n")
+                    f.write("# Description :\n")
+                    f.write("# -------------\n# ")
+                    f.write(self._desc)
+                    f.write("\n\n")
 
-            for s in self.sections.values():
-                log.debug("loading section : " + s.get_section_name())
-                s.write_config_file(f, comments)
-        log.debug("config file generation completed : " + str(output))
+                for s in self.sections.values():
+                    log.debug("loading section : " + s.get_section_name())
+                    s.write_config_file(f, comments)
+            log.debug("config file generation completed : " + str(output))
 
 
 # -----------------------------------------------------------------------------
@@ -1067,11 +1077,12 @@ class BasicProgram(object):
     """ TODO """
 
     def __init__(self, name, config_file=None, desc=None,
-                 mandatory=False):
+                 mandatory=False, use_config_file=True):
 
         # create configuration
-        self.config = Config(name, config_file = config_file, desc = desc,
-                             mandatory = mandatory)
+        self.config=Config(name, config_file=config_file, desc=desc,
+                             mandatory=mandatory,
+                             use_config_file=use_config_file)
         self.parser = None
 
         self.log = self.init_logger()
