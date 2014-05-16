@@ -1,0 +1,237 @@
+#! /usr/bin/env python2
+# -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
+
+# This file is part of argtoolbox.
+#
+# argtoolbox is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# argtoolbox is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with LinShare user cli.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright 2014 Frédéric MARTIN
+#
+# Contributors list:
+#
+#  Frédéric MARTIN frederic.martin.fma@gmail.com
+#
+
+import sys
+import importlib
+import logging
+import argtoolbox
+from argtoolbox import BasicProgram
+from argtoolbox import DefaultCommand
+from argtoolbox import query_yes_no
+from subprocess import call
+import shlex
+import os
+
+
+
+class ConfigGenerationCommand(object):
+    """This command read a existing program and generate the associated
+    configuration file"""
+
+    def __call__(self, args):
+        glog.debug("args : " + str(args))
+        if args.debug:
+            glog.setLevel(logging.DEBUG)
+        config = self.getconfig(args)
+        self.generate(args, config)
+
+    # pylint: disable-msg=R0201
+    def getconfig(self, args):
+        """Looking for a Config Object into the input program."""
+        glog.info("Looking for Config object into input program ...")
+        glog.debug("input program name : '" + str(args.program) +"'")
+        program = args.program
+        local_dir = os.path.dirname(program)
+        glog.debug("local_dir : '" + str(local_dir) +"'")
+        sys.path.append(local_dir)
+
+        module_name = program.split('/')[-1].split('.')[0]
+        glog.debug("module name found : " + str(module_name))
+
+        level = logging.getLogger().getEffectiveLevel()
+        module = importlib.import_module(module_name)
+        glog.setLevel(level)
+
+        result = None
+        for i in dir(module):
+            temp_class = getattr(module, i)
+            if isinstance(temp_class, argtoolbox.Config):
+                glog.debug("variable name found : " + str(i))
+                glog.debug("variable type found : " + str(type(temp_class)))
+                result = temp_class
+                break
+            # pylint: disable-msg=C0301
+            elif isinstance(temp_class, argtoolbox.BasicProgram) or  isinstance(temp_class, argtoolbox.DefaultProgram):
+                glog.debug("variable name found : " + str(i))
+                glog.debug("variable type found : " + str(type(temp_class)))
+                result = temp_class.config
+                break
+        if result:
+            glog.info("Config object found : " + result.prog_name)
+        return result
+
+    def generate(self, args, config):
+        """Generate the default configuration file from the config object"""
+        glog.info("Trying to generate the default configuration file ...")
+        if not config.use_config_file:
+            glog.info(
+                "The current program does not support a configuration file.")
+            return True
+        configfile = os.path.expanduser('~/.' + config.prog_name + '.cfg')
+        glog.info("The default configuration file name is : " + configfile)
+        if args.output:
+            configfile = args.output
+            if configfile[:-4] != ".conf":
+                configfile += ".conf"
+            glog.warn("Using '" + configfile + "' as configuration file name.")
+
+        if not args.force_yes:
+            if os.path.exists(configfile):
+                glog.warn(
+                    "The current file already exists : " + str(configfile))
+                if not argtoolbox.query_yes_no("Overwrite ?", "no"):
+                    glog.error("Aborted.")
+                    return False
+        config.write_default_config_file(configfile, args.nocomments)
+        glog.info("Done.")
+
+
+class GenerateCommand(DefaultCommand):
+    """The comman is design to generate a sample program"""
+
+    def __call__(self, args):
+        super(GenerateCommand, self).__call__(args)
+
+        filename = args.prog_name.lower() + ".py"
+        prog_name = args.prog_name.lower()
+        command_name = args.command_name.lower()
+
+        if self.copy(filename, args.force_yes):
+            self.rename_command(command_name, filename)
+            self.rename_prog(prog_name, filename)
+            self.description(args.description, prog_name, filename)
+            print "program generation complete : " + str(filename)
+
+    # pylint: disable-msg=R0201
+    def description(self, description, prog_name, filename):
+        """Replace ${description} variable in file content"""
+        if not  description:
+            description = "Description of program " + prog_name
+        cmd = "/bin/sed -i -e 's/#{description}/" + description
+        cmd += "/g' " + filename
+        call(shlex.split(cmd))
+
+    # pylint: disable-msg=R0201
+    def rename_command(self, command_name, filename):
+        """Replace ${command_name} variable in file content"""
+        cmd = "/bin/sed -i -e 's/#{command_name}/" + command_name
+        cmd += "/g' " + filename
+        call(shlex.split(cmd))
+        cmd = "/bin/sed -i -e 's/#{command_name_class}/" + command_name.title()
+        cmd += "/g' " + filename
+        call(shlex.split(cmd))
+
+    def rename_prog(self, prog_name, filename):
+        """Replace ${prog_name} variable in file content"""
+        cmd = "/bin/sed -i -e 's/#{prog_name}/" + prog_name + "/g' " + filename
+        call(shlex.split(cmd))
+        prog_name.title()
+        cmd = "/bin/sed -i -e 's/#{prog_name_class}/" + prog_name.title()
+        cmd += "/g' " + filename
+        call(shlex.split(cmd))
+
+    def copy(self, filename, force_yes):
+        """Copy the default template to the new file name."""
+        if not force_yes:
+            if os.path.exists(filename):
+                self.log.warn(
+                    "current file already exists : " + str(filename))
+                if not query_yes_no("overwrite ?", "no"):
+                    self.log.error("aborted.")
+                    return False
+        cmd = "/bin/cp -f " + argtoolbox.__path__[0] + "/templates/default.tml "
+        cmd += filename
+        if call(shlex.split(cmd)) == 0:
+            return True
+
+
+class MyProgram(BasicProgram):
+    """Main program"""
+
+    def add_commands(self):
+        self.parser.add_argument(
+            '-d',
+            action="count",
+            dest="debug",
+            default=0,
+            help="""debug level : default : 0.""")
+
+        subparsers = self.parser.add_subparsers()
+        parser_tmp = subparsers.add_parser(
+            'new',
+            help="create a new program based on default template")
+        parser_tmp.add_argument("--description")
+        parser_tmp.add_argument("--progname", dest="prog_name",
+                                default="sample")
+        parser_tmp.add_argument("--commandname", dest="command_name",
+                                default="sample")
+        parser_tmp.add_argument(
+            '-f',
+            dest="force_yes",
+            action="store_true",
+            help="overwrite the current output file even it still exists.")
+        parser_tmp.set_defaults(__func__=GenerateCommand(self.config))
+
+
+        parser_tmp = subparsers.add_parser(
+            'generate',
+            help="""Scan an existing program and generate the associated
+             configuration file""")
+        parser_tmp.add_argument('--output', action="store")
+        parser_tmp.add_argument('--input', action="store", dest="program",
+                                required=True)
+        parser_tmp.add_argument(
+            '-n',
+            dest="nocomments",
+            action="store_false",
+            help="config file generation without commments.")
+        parser_tmp.add_argument(
+            '-f',
+            dest="force_yes",
+            action="store_true",
+            help="overwrite the current output file even it still exists.")
+        parser_tmp.set_defaults(__func__=ConfigGenerationCommand())
+
+
+# -----------------------------------------------------------------------------
+# MAIN
+# -----------------------------------------------------------------------------
+# logger
+# pylint: disable-msg=C0103
+glog = logging.getLogger()
+glog.setLevel(logging.INFO)
+# logger handlers
+glog.addHandler(argtoolbox.streamHandler)
+
+
+if __name__ == "__main__":
+    PROG = MyProgram(
+        "argtoolbox_utils",
+        use_config_file=False,
+        desc="""This tool help you generate config file for
+         program based on argtoolbox package, create new basic
+        program, ... make your dev life easier !""")
+    PROG()

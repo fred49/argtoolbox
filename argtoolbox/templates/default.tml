@@ -1,0 +1,50 @@
+#! /usr/bin/env python2
+# -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
+
+from argtoolbox import BasicProgram
+from argtoolbox import SimpleSection
+from argtoolbox import Element
+from argtoolbox import DefaultCommand
+
+
+# To disable pylint warning :
+# pylint: disable-msg=
+
+# -----------------------------------------------------------------------------
+class #{command_name_class}Command(DefaultCommand):
+    """Main program"""
+
+    def __call__(self, args):
+        super(#{command_name_class}Command, self).__call__(args)
+        print "New generated command : #{command_name}"
+
+
+class #{prog_name_class}Program(BasicProgram):
+
+    def add_config_options(self):
+        # default section 
+        default = self.config.get_default_section()
+        default.add_element(Element('debug',
+                                         e_type=int,
+                                         default=0,
+                                         desc="""debug level : default : 0."""))
+
+    def add_commands(self):
+        self.parser.add_argument(
+            '-d',
+            action="count",
+            **self.config.default.debug.get_arg_parse_arguments())
+
+        subparsers = self.parser.add_subparsers()
+        parser_tmp = subparsers.add_parser(
+            '#{command_name}',
+            help="Description of #{command_name}")
+        parser_tmp.set_defaults(__func__=#{command_name_class}Command(self.config))
+
+
+PROG = #{prog_name_class}Program(
+        "#{prog_name}",
+        desc="#{description}.")
+if __name__ == "__main__":
+    PROG()
