@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
-from argtoolbox import BasicProgram
-from argtoolbox import SimpleSection
-from argtoolbox import Element
 from argtoolbox import DefaultCommand
+from argtoolbox import BasicProgram
+# pylint: disable-msg=W0611
+from argtoolbox import SimpleSection
+# pylint: disable-msg=W0611
+from argtoolbox import Element
 
-
-# To disable pylint warning :
-# pylint: disable-msg=
 
 # -----------------------------------------------------------------------------
+# pylint: disable-msg=R0903
 class #{command_name_class}Command(DefaultCommand):
-    """Main program"""
+    """#{command_name_class} command"""
 
     def __call__(self, args):
         super(#{command_name_class}Command, self).__call__(args)
@@ -21,21 +21,13 @@ class #{command_name_class}Command(DefaultCommand):
 
 
 class #{prog_name_class}Program(BasicProgram):
+    """Main program."""
 
     def add_config_options(self):
-        # default section 
-        default = self.config.get_default_section()
-        default.add_element(Element('debug',
-                                         e_type=int,
-                                         default=0,
-                                         desc="""debug level : default : 0."""))
+        super(#{prog_name_class}Program, self).add_config_options()
 
     def add_commands(self):
-        self.parser.add_argument(
-            '-d',
-            action="count",
-            **self.config.default.debug.get_arg_parse_arguments())
-
+        super(#{prog_name_class}Program, self).add_commands()
         subparsers = self.parser.add_subparsers()
         parser_tmp = subparsers.add_parser(
             '#{command_name}',

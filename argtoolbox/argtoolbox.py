@@ -1104,7 +1104,13 @@ class BasicProgram(object):
     def add_config_options(self):
         """ You can override this method in order to add your options to the
         config object."""
-        pass
+        # default section
+        default = self.config.get_default_section()
+        default.add_element(
+            Element('debug',
+                    e_type=int,
+                    default=0,
+                    desc="""debug level : default : 0."""))
 
     def init_parser(self):
         # arguments parser
@@ -1126,7 +1132,10 @@ class BasicProgram(object):
         """ You can override this method in order to add your command line
         arguments to the argparse parser. The configuration file is already
         loaded at this time."""
-        pass
+        self.parser.add_argument(
+            '-d',
+            action="count",
+            **self.config.default.debug.get_arg_parse_arguments())
 
     def __call__(self):
 

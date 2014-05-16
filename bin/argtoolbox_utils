@@ -171,14 +171,11 @@ class GenerateCommand(DefaultCommand):
 class MyProgram(BasicProgram):
     """Main program"""
 
-    def add_commands(self):
-        self.parser.add_argument(
-            '-d',
-            action="count",
-            dest="debug",
-            default=0,
-            help="""debug level : default : 0.""")
+    def add_config_options(self):
+        super(MyProgram, self).add_config_options()
 
+    def add_commands(self):
+        super(MyProgram, self).add_commands()
         subparsers = self.parser.add_subparsers()
         parser_tmp = subparsers.add_parser(
             'new',
