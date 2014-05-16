@@ -109,8 +109,37 @@ class ConfigGenerationCommand(object):
         glog.info("Done.")
 
 
+class RegisterCommand(DefaultCommand):
+    """The command is design to register global argcomplete support"""
+
+    def __call__(self, args):
+        super(RegisterCommand, self).__call__(args)
+        if args.global_register:
+            sys.exit(call("activate-global-python-argcomplete"))
+        else:
+            bashrc = os.path.expanduser("~/.bashrc")
+            self.log.info("register-python-argcomplete %(script)s" % {
+                'script': args.script})
+
+            f = open(bashrc, 'a')
+            f.write('eval "$(register-python-argcomplete %(script)s)"\n' % {
+                'script': args.script})
+            f.flush()
+            f.close()
+
+
+class ListRegisteredCommand(DefaultCommand):
+    """The command is design to register global argcomplete support"""
+
+    def __call__(self, args):
+        super(ListRegisteredCommand, self).__call__(args)
+        bashrc = os.path.expanduser("~/.bashrc")
+        cmd = "grep register-python-argcomplete " + bashrc
+        call(shlex.split(cmd))
+
+
 class GenerateCommand(DefaultCommand):
-    """The comman is design to generate a sample program"""
+    """The command is design to generate a sample program"""
 
     def __call__(self, args):
         super(GenerateCommand, self).__call__(args)
@@ -130,27 +159,33 @@ class GenerateCommand(DefaultCommand):
         """Replace ${description} variable in file content"""
         if not  description:
             description = "Description of program " + prog_name
-        cmd = "/bin/sed -i -e 's/#{description}/" + description
-        cmd += "/g' " + filename
+        cmd = "sed -i -e 's/#{description}/%(data)s/g' %(file)s" % {
+            'data': description,
+            'file': filename}
         call(shlex.split(cmd))
 
     # pylint: disable-msg=R0201
     def rename_command(self, command_name, filename):
         """Replace ${command_name} variable in file content"""
-        cmd = "/bin/sed -i -e 's/#{command_name}/" + command_name
-        cmd += "/g' " + filename
+        cmd = "sed -i -e 's/#{command_name}/%(data)s/g' %(file)s" % {
+            'data': command_name,
+            'file': filename}
         call(shlex.split(cmd))
-        cmd = "/bin/sed -i -e 's/#{command_name_class}/" + command_name.title()
-        cmd += "/g' " + filename
+        cmd = "sed -i -e 's/#{command_name_class}/%(data)s/g' %(file)s" % {
+            'data': command_name.title(),
+            'file': filename}
         call(shlex.split(cmd))
 
     def rename_prog(self, prog_name, filename):
         """Replace ${prog_name} variable in file content"""
-        cmd = "/bin/sed -i -e 's/#{prog_name}/" + prog_name + "/g' " + filename
+        cmd = "sed -i -e 's/#{prog_name}/%(data)s/g' %(file)s" % {
+            'data': prog_name,
+            'file': filename}
         call(shlex.split(cmd))
         prog_name.title()
-        cmd = "/bin/sed -i -e 's/#{prog_name_class}/" + prog_name.title()
-        cmd += "/g' " + filename
+        cmd = "sed -i -e 's/#{prog_name_class}/%(data)s/g' %(file)s" % {
+            'data': prog_name.title(),
+            'file': filename}
         call(shlex.split(cmd))
 
     def copy(self, filename, force_yes):
@@ -162,8 +197,12 @@ class GenerateCommand(DefaultCommand):
                 if not query_yes_no("overwrite ?", "no"):
                     self.log.error("aborted.")
                     return False
-        cmd = "/bin/cp -f " + argtoolbox.__path__[0] + "/templates/default.tml "
-        cmd += filename
+        cmd = "/bin/cp -f %(template)s %(filename)s" % {
+            "template": os.path.join(
+                            os.path.dirname(argtoolbox.__file__),
+                            'templates',
+                            'default.tml'),
+            "filename": filename}
         if call(shlex.split(cmd)) == 0:
             return True
 
@@ -177,9 +216,46 @@ class MyProgram(BasicProgram):
     def add_commands(self):
         super(MyProgram, self).add_commands()
         subparsers = self.parser.add_subparsers()
+
+
+        # Command register
+        parser_tmp = subparsers.add_parser(
+            'register',
+            help="""This command is used to enable auto completion for program
+            based on argparse module (argcomplete module).
+
+            If you are using bash, version > 4.2, you can use global
+            registering.
+            Otherwise you have to register every script, one by one.""")
+
+        register_group = parser_tmp.add_argument_group('register')
+        group = register_group.add_mutually_exclusive_group(required=True)
+        group.add_argument(
+            '--script',
+            action="store",
+            help="""This command will modify your .bashrc to register the
+            bash_completion module for the curent script.""")
+        group.add_argument(
+            '--global',
+            action="store_true",
+            default=False,
+            dest="global_register",
+            help="""This option will register the bash_completion script for
+            argcomplete into /etc/bash_completion_d/. Make sure you have sufficient privileges.""")
+        parser_tmp.set_defaults(__func__=RegisterCommand(self.config))
+
+
+        # Command list registered commands
+        parser_tmp = subparsers.add_parser(
+            'list-registered',
+            help="List already registered scripts")
+        parser_tmp.set_defaults(__func__=ListRegisteredCommand(self.config))
+
+
+        # Command new
         parser_tmp = subparsers.add_parser(
             'new',
-            help="create a new program based on default template")
+            help="Create a new program based on default template")
         parser_tmp.add_argument("--description")
         parser_tmp.add_argument("--progname", dest="prog_name",
                                 default="sample")
@@ -193,6 +269,7 @@ class MyProgram(BasicProgram):
         parser_tmp.set_defaults(__func__=GenerateCommand(self.config))
 
 
+        # Command generate
         parser_tmp = subparsers.add_parser(
             'generate',
             help="""Scan an existing program and generate the associated
