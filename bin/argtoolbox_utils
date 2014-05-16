@@ -36,7 +36,6 @@ import shlex
 import os
 
 
-
 class ConfigGenerationCommand(object):
     """This command read a existing program and generate the associated
     configuration file"""
@@ -48,14 +47,14 @@ class ConfigGenerationCommand(object):
         config = self.getconfig(args)
         self.generate(args, config)
 
-    # pylint: disable-msg=R0201
+    # pylint: disable=no-self-use
     def getconfig(self, args):
         """Looking for a Config Object into the input program."""
         glog.info("Looking for Config object into input program ...")
-        glog.debug("input program name : '" + str(args.program) +"'")
+        glog.debug("input program name : '" + str(args.program) + "'")
         program = args.program
         local_dir = os.path.dirname(program)
-        glog.debug("local_dir : '" + str(local_dir) +"'")
+        glog.debug("local_dir : '" + str(local_dir) + "'")
         sys.path.append(local_dir)
 
         module_name = program.split('/')[-1].split('.')[0]
@@ -73,8 +72,8 @@ class ConfigGenerationCommand(object):
                 glog.debug("variable type found : " + str(type(temp_class)))
                 result = temp_class
                 break
-            # pylint: disable-msg=C0301
-            elif isinstance(temp_class, argtoolbox.BasicProgram) or  isinstance(temp_class, argtoolbox.DefaultProgram):
+            # pylint: disable=line-too-long
+            elif isinstance(temp_class, argtoolbox.BasicProgram) or isinstance(temp_class, argtoolbox.DefaultProgram):
                 glog.debug("variable name found : " + str(i))
                 glog.debug("variable type found : " + str(type(temp_class)))
                 result = temp_class.config
@@ -83,6 +82,7 @@ class ConfigGenerationCommand(object):
             glog.info("Config object found : " + result.prog_name)
         return result
 
+    # pylint: disable=no-self-use
     def generate(self, args, config):
         """Generate the default configuration file from the config object"""
         glog.info("Trying to generate the default configuration file ...")
@@ -109,30 +109,32 @@ class ConfigGenerationCommand(object):
         glog.info("Done.")
 
 
+# pylint:disable=no-init
+# pylint:disable=too-few-public-methods
 class RegisterCommand(DefaultCommand):
     """The command is design to register global argcomplete support"""
 
     def __call__(self, args):
-        super(RegisterCommand, self).__call__(args)
+        DefaultCommand.__call__(self, args)
         if args.global_register:
             sys.exit(call("activate-global-python-argcomplete"))
         else:
             bashrc = os.path.expanduser("~/.bashrc")
             self.log.info("register-python-argcomplete %(script)s" % {
                 'script': args.script})
-
-            f = open(bashrc, 'a')
-            f.write('eval "$(register-python-argcomplete %(script)s)"\n' % {
+            fde = open(bashrc, 'a')
+            fde.write('eval "$(register-python-argcomplete %(script)s)"\n' % {
                 'script': args.script})
-            f.flush()
-            f.close()
+            fde.flush()
+            fde.close()
 
 
+# pylint:disable=no-init
 class ListRegisteredCommand(DefaultCommand):
     """The command is design to register global argcomplete support"""
 
     def __call__(self, args):
-        super(ListRegisteredCommand, self).__call__(args)
+        DefaultCommand.__call__(self, args)
         bashrc = os.path.expanduser("~/.bashrc")
         cmd = "grep register-python-argcomplete " + bashrc
         call(shlex.split(cmd))
@@ -142,7 +144,7 @@ class GenerateCommand(DefaultCommand):
     """The command is design to generate a sample program"""
 
     def __call__(self, args):
-        super(GenerateCommand, self).__call__(args)
+        DefaultCommand.__call__(self, args)
 
         filename = args.prog_name.lower() + ".py"
         prog_name = args.prog_name.lower()
@@ -154,17 +156,17 @@ class GenerateCommand(DefaultCommand):
             self.description(args.description, prog_name, filename)
             print "program generation complete : " + str(filename)
 
-    # pylint: disable-msg=R0201
+    # pylint: disable=no-self-use
     def description(self, description, prog_name, filename):
         """Replace ${description} variable in file content"""
-        if not  description:
+        if not description:
             description = "Description of program " + prog_name
         cmd = "sed -i -e 's/#{description}/%(data)s/g' %(file)s" % {
             'data': description,
             'file': filename}
         call(shlex.split(cmd))
 
-    # pylint: disable-msg=R0201
+    # pylint: disable=no-self-use
     def rename_command(self, command_name, filename):
         """Replace ${command_name} variable in file content"""
         cmd = "sed -i -e 's/#{command_name}/%(data)s/g' %(file)s" % {
@@ -199,9 +201,9 @@ class GenerateCommand(DefaultCommand):
                     return False
         cmd = "/bin/cp -f %(template)s %(filename)s" % {
             "template": os.path.join(
-                            os.path.dirname(argtoolbox.__file__),
-                            'templates',
-                            'default.tml'),
+                os.path.dirname(argtoolbox.__file__),
+                'templates',
+                'default.tml'),
             "filename": filename}
         if call(shlex.split(cmd)) == 0:
             return True
@@ -211,12 +213,11 @@ class MyProgram(BasicProgram):
     """Main program"""
 
     def add_config_options(self):
-        super(MyProgram, self).add_config_options()
+        BasicProgram.add_config_options(self)
 
     def add_commands(self):
-        super(MyProgram, self).add_commands()
+        BasicProgram.add_config_options(self)
         subparsers = self.parser.add_subparsers()
-
 
         # Command register
         parser_tmp = subparsers.add_parser(
@@ -241,7 +242,8 @@ class MyProgram(BasicProgram):
             default=False,
             dest="global_register",
             help="""This option will register the bash_completion script for
-            argcomplete into /etc/bash_completion_d/. Make sure you have sufficient privileges.""")
+            argcomplete into /etc/bash_completion_d/.
+            Make sure you have sufficient privileges.""")
         parser_tmp.set_defaults(__func__=RegisterCommand(self.config))
 
 
@@ -294,7 +296,7 @@ class MyProgram(BasicProgram):
 # MAIN
 # -----------------------------------------------------------------------------
 # logger
-# pylint: disable-msg=C0103
+# pylint:disable=invalid-name
 glog = logging.getLogger()
 glog.setLevel(logging.INFO)
 # logger handlers
