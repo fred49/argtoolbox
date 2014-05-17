@@ -26,8 +26,18 @@ class #{prog_name_class}Program(BasicProgram):
     def add_config_options(self):
         super(#{prog_name_class}Program, self).add_config_options()
 
+        # To be removed if useless : samples
+        # sample_section = self.config.add_section(SimpleSection("sample_section"))
+        # sample_section.add_element(Element('server_name'))
+
     def add_commands(self):
         super(#{prog_name_class}Program, self).add_commands()
+
+        # To be removed if useless : samples
+        # self.parser.add_argument(
+        #     '--server-name',
+        #     **self.config.sample_section.server_name.get_arg_parse_arguments())
+
         subparsers = self.parser.add_subparsers()
         parser_tmp = subparsers.add_parser(
             '#{command_name}',
