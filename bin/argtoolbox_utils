@@ -25,15 +25,16 @@
 #
 
 import sys
+import os
+import shlex
 import importlib
 import logging
+import argparse
 import argtoolbox
 from argtoolbox import BasicProgram
 from argtoolbox import DefaultCommand
 from argtoolbox import query_yes_no
 from subprocess import call
-import shlex
-import os
 
 
 class ConfigGenerationCommand(object):
@@ -118,6 +119,17 @@ class RegisterCommand(DefaultCommand):
         DefaultCommand.__call__(self, args)
         if args.global_register:
             sys.exit(call("activate-global-python-argcomplete"))
+        elif args.user_register:
+            cmd = "activate-global-python-argcomplete --user"
+            if call(shlex.split(cmd)) != 0:
+                sys.exit(1)
+            bashrc = os.path.expanduser("~/.bashrc")
+            fde = open(bashrc, 'a')
+            fde.write("source ~/.bash_completion.d/python-argcomplete.sh\n")
+            fde.flush()
+            fde.close()
+            self.log.info("The command 'source \
+~/.bash_completion.d/python-argcomplete.sh' was added to your bashrc")
         else:
             bashrc = os.path.expanduser("~/.bashrc")
             self.log.info("register-python-argcomplete %(script)s" % {
@@ -216,34 +228,58 @@ class MyProgram(BasicProgram):
         BasicProgram.add_config_options(self)
 
     def add_commands(self):
-        BasicProgram.add_config_options(self)
+        BasicProgram.add_commands(self)
+        self.parser.formatter_class = argparse.RawTextHelpFormatter
         subparsers = self.parser.add_subparsers()
 
         # Command register
         parser_tmp = subparsers.add_parser(
             'register',
+            formatter_class = argparse.RawTextHelpFormatter,
             help="""This command is used to enable auto completion for program
-            based on argparse module (argcomplete module).
+based on argparse module using argcomplete module.
 
-            If you are using bash, version > 4.2, you can use global
-            registering.
-            Otherwise you have to register every script, one by one.""")
+If you are using bash (version <= 4.2), you have to register
+autocompletion support for every scripts, one by one.
+
+If you are using bash (version >=4.3) you can use automatic
+registering support (see global or user options)
+
+""")
+
 
         register_group = parser_tmp.add_argument_group('register')
         group = register_group.add_mutually_exclusive_group(required=True)
         group.add_argument(
             '--script',
             action="store",
-            help="""This command will modify your .bashrc to register the
-            bash_completion module for the curent script.""")
+            help="""This option will modify your .bashrc to register the
+bash_completion module for the current SCRIPT.\n
+""")
         group.add_argument(
             '--global',
             action="store_true",
             default=False,
             dest="global_register",
             help="""This option will register the bash_completion script for
-            argcomplete into /etc/bash_completion_d/.
-            Make sure you have sufficient privileges.""")
+argcomplete into /etc/bash_completion_d/.
+Completion will be automatically enable for every scripts
+which support it.
+Make sure you have sufficient privileges.
+\n/!\\ Need Bash >= 4.3 /!\\ \n
+""")
+        group.add_argument(
+            '--user',
+            action="store_true",
+            default=False,
+            dest="user_register",
+            help="""This option will register the bash_completion script for
+argcomplete into ~/.bash_completion_d/ and modify your
+bashrc to include it
+Completion will be automatically enable for every scripts
+which support it.
+\n/!\\ Need Bash >= 4.3 /!\\ \n
+            """)
         parser_tmp.set_defaults(__func__=RegisterCommand(self.config))
 
 
