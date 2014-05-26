@@ -152,7 +152,7 @@ class Config(object):
         self.sections = OrderedDict()
         self._default_section = self.add_section(SimpleSection("DEFAULT"))
         self.parser = None
-        self.fileParser = ConfigParser.SafeConfigParser()
+        self.file_parser = ConfigParser.SafeConfigParser()
 
     def add_section(self, section):
         """Add a new Section object to the config. Should be a subclass of
@@ -180,9 +180,9 @@ class Config(object):
         discoveredFileList = []
         if self.config_file:
             if isinstance(self.config_file, str):
-                discoveredFileList = self.fileParser.read(self.config_file)
+                discoveredFileList = self.file_parser.read(self.config_file)
             else:
-                discoveredFileList = self.fileParser.readfp(self.config_file,
+                discoveredFileList = self.file_parser.readfp(self.config_file,
                                                             "file descriptor")
         else:
             defaultFileList = []
@@ -191,7 +191,7 @@ class Config(object):
                 os.path.expanduser('~/.' + self.prog_name + '.cfg'))
             defaultFileList.append('/etc/' + self.prog_name + '.cfg')
             log.debug("defaultFileList: " + str(defaultFileList))
-            discoveredFileList = self.fileParser.read(defaultFileList)
+            discoveredFileList = self.file_parser.read(defaultFileList)
 
         log.debug("discoveredFileList: " + str(discoveredFileList))
 
@@ -206,13 +206,13 @@ class Config(object):
             for s in self.sections.values():
                 log.debug("loading section : " + s.get_section_name())
                 try:
-                    s.load(self.fileParser)
+                    s.load(self.file_parser)
                 except ValueError:
                     sys.exit(1)
         else:
             for s in self.sections.values():
                 log.debug("loading section : " + s.get_section_name())
-                s.load(self.fileParser)
+                s.load(self.file_parser)
 
         log.debug("configuration loaded.")
 
@@ -267,10 +267,10 @@ class Config(object):
             log = logging.getLogger('argtoolbox')
             log.debug("reloading configuration ...")
             if args.config_file:
-                self.fileParser.read(args.config_file)
+                self.file_parser.read(args.config_file)
             for s in self.sections.values():
                 log.debug("loading section : " + s.get_section_name())
-                s.load(self.fileParser)
+                s.load(self.file_parser)
             log.debug("configuration reloaded.")
 
     def __getattr__(self, name):
@@ -346,7 +346,7 @@ class _AbstractSection(object):
 
     # pylint: disable-msg=W0613
     # pylint: disable-msg=R0201
-    def load(self, fileParser):
+    def load(self, file_parser):
         """ This method must be implemented by the subclass. This method should
         read and load all section elements.
         """
@@ -402,11 +402,11 @@ class _Section(_AbstractSection):
         Section"""
         return len(self.elements)
 
-    def load(self, fileParser):
+    def load(self, file_parser):
         section = self.get_section_name()
         try:
             for e in self.elements.values():
-                e.load(fileParser, section)
+                e.load(file_parser, section)
         except ConfigParser.NoSectionError as e:
             # pylint: disable-msg=W0621
             log = logging.getLogger('argtoolbox')
@@ -498,13 +498,13 @@ class ListSection(_AbstractSection):
         self.elements = OrderedDict()
         self._name = name
 
-    def load(self, fileParser):
+    def load(self, file_parser):
 
         section = self.get_section_name()
         try:
-            for key in [item for item in fileParser.options(section)
-                        if item not in fileParser.defaults().keys()]:
-                self.elements[key] = fileParser.get(section, key)
+            for key in [item for item in file_parser.options(section)
+                        if item not in file_parser.defaults().keys()]:
+                self.elements[key] = file_parser.get(section, key)
         except ConfigParser.NoSectionError as e:
             # pylint: disable-msg=W0621
             log = logging.getLogger('argtoolbox')
@@ -650,15 +650,15 @@ class Element(object):
         for h in self.hooks:
             h(self)
 
-    def load(self, fileParser, section_name):
+    def load(self, file_parser, section_name):
         """The current element is loaded from the configuration file,
         all constraints and requirements are checked.
         Then element hooks are applied.
         """
-        self._load(fileParser, section_name)
+        self._load(file_parser, section_name)
         self.post_load()
 
-    def _load(self, fileParser, section_name):
+    def _load(self, file_parser, section_name):
         """The current element is loaded from the configuration file,
         all constraints and requirements are checked.
         """
@@ -670,13 +670,13 @@ class Element(object):
             data = None
             try:
                 if self.e_type == int:
-                    data = fileParser.getint(section_name, self._name)
+                    data = file_parser.getint(section_name, self._name)
                 elif self.e_type == float:
-                    data = fileParser.getfloat(section_name, self._name)
+                    data = file_parser.getfloat(section_name, self._name)
                 elif self.e_type == bool:
-                    data = fileParser.getboolean(section_name, self._name)
+                    data = file_parser.getboolean(section_name, self._name)
                 elif self.e_type == list:
-                    data = fileParser.get(section_name, self._name)
+                    data = file_parser.get(section_name, self._name)
                     data = data.strip().split()
                     if not data:
                         msg = "The optional field '%(name)s' was present, \
@@ -685,7 +685,7 @@ class Element(object):
                         log.error(msg)
                         raise ValueError(msg)
                 elif self.e_type == str:
-                    data = fileParser.get(section_name, self._name)
+                    data = file_parser.get(section_name, self._name)
                     # happens only when the current field is present,
                     # type is string, but value is ''
                     if not data:
@@ -832,12 +832,12 @@ class ElementWithSubSections(Element):
         self.sections[section.name] = section
         return section
 
-    def load(self, fileParser, section_name):
-        self._load(fileParser, section_name)
+    def load(self, file_parser, section_name):
+        self._load(file_parser, section_name)
         if len(self.sections) > 0:
             for sec in self.sections.values():
                 sec.name = self.value
-                sec.load(fileParser)
+                sec.load(file_parser)
         self.post_load()
 
 
@@ -897,15 +897,15 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
                             not :" + str(_Section.__class__))
         self.rss = rss
 
-    def load(self, fileParser, section_name):
-        self._load(fileParser, section_name)
+    def load(self, file_parser, section_name):
+        self._load(file_parser, section_name)
         if isinstance(self.value, list):
             for sec_name in self.value:
                 try:
                     sec = copy.deepcopy(self.rss, None)
                     setattr(sec, '_name', sec_name)
                     self.sections[sec_name] = sec
-                    sec.load(fileParser)
+                    sec.load(file_parser)
                 except ValueError as e:
                     # pylint: disable-msg=W0621
                     log = logging.getLogger('argtoolbox')
@@ -959,7 +959,7 @@ class DefaultCommand(object):
 
     # pylint: disable-msg=W0613
     # pylint: disable-msg=R0201
-    def complete(self, args,  prefix):
+    def complete(self, args, prefix):
         """Auto complete method, args is comming from argparse and prefix is
         the input data from command line.
         You must return a list."""
@@ -1029,7 +1029,7 @@ class DefaultCompleter(object):
 class DefaultProgram(object):
     """ TODO """
 
-    def __init__(self, parser, config = None):
+    def __init__(self, parser, config=None):
         self.parser = parser
         self.config = config
 
@@ -1080,7 +1080,7 @@ class BasicProgram(object):
                  mandatory=False, use_config_file=True):
 
         # create configuration
-        self.config=Config(name, config_file=config_file, desc=desc,
+        self.config = Config(name, config_file=config_file, desc=desc,
                              mandatory=mandatory,
                              use_config_file=use_config_file)
         self.parser = None
