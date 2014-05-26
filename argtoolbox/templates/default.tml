@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
+from __future__ import unicode_literals
+
 from argtoolbox import DefaultCommand
 from argtoolbox import BasicProgram
 # pylint: disable-msg=W0611

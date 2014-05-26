@@ -25,6 +25,8 @@
 #  Frédéric MARTIN frederic.martin.fma@gmail.com
 #
 
+from __future__ import unicode_literals
+
 import os
 import sys
 import io
@@ -34,6 +36,7 @@ import copy
 from ordereddict import OrderedDict
 import ConfigParser
 import argparse
+import types
 
 # -----------------------------------------------------------------------------
 # global logger variable
@@ -92,12 +95,12 @@ class Base64ElementHook(DefaultHook):
                 log = logging.getLogger('argtoolbox')
                 if self.warning:
                     log.warn("current field '%(name)s' is not \
-                        stored in the configuration file with \
-                        base64 encoding",
+stored in the configuration file with \
+base64 encoding",
                              {"name": getattr(elt, "_name")})
                 else:
                     log.error("current field '%(name)s' is not stored in the \
-                    configuration file with base64 encoding", {"name":
+configuration file with base64 encoding", {"name":
                               getattr(elt, "_name")})
                     raise ex
 
@@ -118,12 +121,12 @@ class SectionHook(object):
             raise TypeError("First argument should be a subclass of _Section.")
         self.section = section
 
-        if not isinstance(attribute, str):
+        if not isinstance(attribute, types.UnicodeType):
             raise TypeError("Second argument should be a string, "
                             + "attribute name.")
         self.attribute = attribute
 
-        if not isinstance(opt_name, str):
+        if not isinstance(opt_name, types.UnicodeType):
             raise TypeError("Third argument should be a string, option name.")
         self.opt_name = opt_name
 
@@ -179,7 +182,7 @@ class Config(object):
         log = logging.getLogger('argtoolbox')
         discoveredFileList = []
         if self.config_file:
-            if isinstance(self.config_file, str):
+            if isinstance(self.config_file, types.UnicodeType):
                 discoveredFileList = self.file_parser.read(self.config_file)
             else:
                 discoveredFileList = self.file_parser.readfp(self.config_file,
@@ -281,7 +284,7 @@ class Config(object):
             return s
         else:
             raise AttributeError("'%(class)s' object has no attribute \
-            '%(name)s'" % {"name": name, "class": self.__class__.__name__})
+'%(name)s'" % {"name": name, "class": self.__class__.__name__})
 
     def __str__(self):
         res = []
@@ -422,7 +425,7 @@ class _Section(_AbstractSection):
             return e
         else:
             raise AttributeError("'%(class)s' object has no attribute \
-            '%(name)s'" % {"name": name, "class": self.__class__.__name__})
+'%(name)s'" % {"name": name, "class": self.__class__.__name__})
 
     def write_config_file(self, f, comments):
         """This method write a sample file, with attributes, descriptions,
@@ -502,6 +505,8 @@ class ListSection(_AbstractSection):
 
         section = self.get_section_name()
         try:
+
+            # TODO : ? : data = data.decode('UTF-8')
             for key in [item for item in file_parser.options(section)
                         if item not in file_parser.defaults().keys()]:
                 self.elements[key] = file_parser.get(section, key)
@@ -630,8 +635,14 @@ class Element(object):
             res.append(prefix + " - " + str(self._name)
                        + " : xxxxxxxx" + suffix)
         else:
-            res.append(prefix + " - " + str(self._name)
-                       + " : " + str(self.value) + suffix)
+            a = prefix + " - "
+            a += str(self._name) + " : "
+            if isinstance(self.value, types.UnicodeType):
+                a += self.value
+            else:
+                a += str(self.value)
+            a += suffix
+            res.append(a)
         return res
 
     def __str__(self):
@@ -677,11 +688,13 @@ class Element(object):
                     data = file_parser.getboolean(section_name, self._name)
                 elif self.e_type == list:
                     data = file_parser.get(section_name, self._name)
-                    data = data.strip().split()
+                    data = data.strip()
+                    data = data.decode('UTF-8')
+                    data = data.split()
                     if not data:
                         msg = "The optional field '%(name)s' was present, \
-                        type is list, but the current value is an empty \
-                        list." % {"name": self._name}
+type is list, but the current value is an empty \
+list." % {"name": self._name}
                         log.error(msg)
                         raise ValueError(msg)
                 elif self.e_type == str:
@@ -694,15 +707,16 @@ class Element(object):
                         string." % {"name": self._name}
                         log.error(msg)
                         raise ValueError(msg)
+                    data = data.decode('UTF-8')
                 else:
-                    msg = "Data type not supported : %(type)s\
-                    " % {"type": self.e_type}
+                    msg = "Data type not supported : %(type)s " % {
+                            "type": self.e_type}
                     log.error(msg)
                     raise TypeError(msg)
 
             except ValueError as ex:
                 msg = "The current field '%(name)s' was present, but the \
-                required type is : %(e_type)s." % {
+required type is : %(e_type)s." % {
                     "name": self._name,
                     "e_type": self.e_type
                     }
@@ -715,13 +729,13 @@ class Element(object):
             if self.hidden:
                 log_data['data'] = "xxxxxxxx"
             log.debug("field found : '%(name)s', value : '%(data)s', \
-                        type : '%(e_type)s'", log_data)
+type : '%(e_type)s'", log_data)
             self.value = data
 
         except ConfigParser.NoOptionError:
             if self.conf_required:
                 msg = "The required field '%(name)s' was missing from the \
-                config file." % {"name": self._name}
+config file." % {"name": self._name}
                 log.error(msg)
                 raise ValueError(msg)
 
@@ -732,7 +746,7 @@ class Element(object):
                 if self.hidden:
                     log_data['data'] = "xxxxxxxx"
                 log.debug("Field not found : '%(name)s', default value : \
-                    '%(data)s', type : '%(e_type)s'", log_data)
+'%(data)s', type : '%(e_type)s'", log_data)
             else:
                 log.debug("Field not found : '" + self._name + "'")
 
@@ -954,7 +968,11 @@ class DefaultCommand(object):
                 setattr(dict_tmp, field, "xxxxxxxx")
         self.log.debug("Namespace : begin :")
         for i in dict_tmp.__dict__:
-            self.log.debug(i + " : " + str(getattr(dict_tmp, i)))
+            attribute = getattr(dict_tmp, i)
+            if isinstance(attribute, types.UnicodeType):
+                self.log.debug(i + " : " + attribute)
+            else:
+                self.log.debug(i + " : " + str(attribute))
         self.log.debug("Namespace : end.")
 
     # pylint: disable-msg=W0613
@@ -978,12 +996,12 @@ class TestCommand(DefaultCommand):
 
         print "The loaded configuration : "
         print "---------------------------"
-        print self.config
+        print unicode(self.config)
         print ""
 
         print "The command line arguments (argv) : "
         print "------------------------------------"
-        print args
+        print unicode(args)
 
         print ""
         print "This is the end of the TestCommand class."
@@ -1050,7 +1068,7 @@ class DefaultProgram(object):
             streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
             if self.config:
                 print "debug>>>----------- config ------------------"
-                print self.config
+                print unicode(self.config)
                 print "debug----------- processing --------------<<<<"
 
             # run command
@@ -1295,7 +1313,7 @@ To enable it, run in bash terminal:
     parser_tmp = subparsers.add_parser(
         'test',
         help="This simple command print cli argv and configuration read \
-        form config file.")
+form config file.")
     parser_tmp.set_defaults(__func__=TestCommand(myconfig))
 
     # run

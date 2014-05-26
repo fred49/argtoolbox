@@ -24,6 +24,8 @@
 #  Frédéric MARTIN frederic.martin.fma@gmail.com
 #
 
+from __future__ import unicode_literals
+
 from argtoolbox import DefaultCommand
 from argtoolbox import BasicProgram
 

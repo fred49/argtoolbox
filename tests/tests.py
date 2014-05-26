@@ -25,6 +25,8 @@
 #
 
 
+from __future__ import unicode_literals
+
 import unittest
 import io
 import sys
