@@ -39,6 +39,9 @@ from argtoolbox import query_yes_no
 from subprocess import call
 
 
+# if you want to debug argcomplete completion,
+# you just need to export ARC_DEBUG=True
+
 class ConfigGenerationCommand(object):
     """This command read a existing program and generate the associated
     configuration file"""
@@ -315,8 +318,7 @@ which support it.
             help="""Scan an existing program and generate the associated
              configuration file""")
         parser_tmp.add_argument('--output', action="store")
-        parser_tmp.add_argument('--input', action="store", dest="program",
-                                required=True)
+        parser_tmp.add_argument('program', action="store")
         parser_tmp.add_argument(
             '-n',
             dest="nocomments",

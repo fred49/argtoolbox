@@ -29,6 +29,9 @@ from __future__ import unicode_literals
 from argtoolbox import DefaultCommand
 from argtoolbox import BasicProgram
 
+# if you want to debug argcomplete completion,
+# you just need to export ARC_DEBUG=True
+
 # Step 1
 class TestCommand(DefaultCommand):
     """Just a simple command, using the default command class."""

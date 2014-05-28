@@ -11,6 +11,8 @@ from argtoolbox import SimpleSection
 # pylint: disable-msg=W0611
 from argtoolbox import Element
 
+# if you want to debug argcomplete completion,
+# you just need to export ARC_DEBUG=True
 
 # -----------------------------------------------------------------------------
 # pylint: disable-msg=R0903

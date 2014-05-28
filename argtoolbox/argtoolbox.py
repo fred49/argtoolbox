@@ -247,7 +247,15 @@ class Config(object):
         # Parsing the command line looking for the previous options like
         # configuration file name or server section. Extra arguments
         # will be store into argv.
-        args = self.parser.parse_known_args()[0]
+        args = None
+        if os.environ.get('_ARGCOMPLETE'):
+            # During argcomplete completion, parse_known_args will return an
+            # empty Namespace. In this case, we feed the previous function with
+            # data comming from the input completion data
+            compline = os.environ.get('COMP_LINE')
+            args = self.parser.parse_known_args(compline.split()[1:])[0]
+        else:
+            args = self.parser.parse_known_args()[0]
 
         if hooks is not None:
             if isinstance(hooks, list):
@@ -1001,7 +1009,7 @@ class TestCommand(DefaultCommand):
 
         print "The command line arguments (argv) : "
         print "------------------------------------"
-        print unicode(args)
+        print args
 
         print ""
         print "This is the end of the TestCommand class."
@@ -1018,22 +1026,21 @@ class DefaultCompleter(object):
     def __call__(self, prefix, **kwargs):
         from argcomplete import debug
         try:
-            debug("\n-----------------------------")
-            debug(str(kwargs))
+            debug("\n------------ DefaultCompleter -----------------")
+            debug("Kwargs content :")
             for i, j in kwargs.items():
-                debug(i)
-                debug("\t" + str(j))
+                debug("key : " + str(i))
+                debug("\t - " + str(j))
+            debug("\n------------ DefaultCompleter -----------------\n")
 
             args = kwargs.get('parsed_args')
             # pylint: disable-msg=W0612
-            l_parser = kwargs.get('parser')
+            parser = kwargs.get('parser')
             #a = parser.parse_known_args()
-            debug("\n-----------------------------")
-            debug(str(args))
 
             # getting form args the current Command and looking for a method
-            # called by default 'complete'.
-            # The method name is specified  by func_name
+            # called by default 'complete'. See __init__ method.
+            # The method name is store in the class member called self.func_name
             fn = getattr(args.__func__, self.func_name, None)
             if fn:
                 return fn(args, prefix)
