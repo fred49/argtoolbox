@@ -314,7 +314,10 @@ class Config(object):
                     f.write("#####################################\n")
                     f.write("# Description :\n")
                     f.write("# -------------\n# ")
-                    f.write(self._desc)
+                    for i in self._desc.split('\n'):
+                        f.write("# ")
+                        f.write(i)
+                        f.write("\n")
                     f.write("\n\n")
 
                 for s in self.sections.values():
