@@ -78,10 +78,15 @@ class ConfigGenerationCommand(object):
                 glog.debug("variable type found : " + str(type(temp_class)))
                 result = temp_class
                 break
-            # pylint: disable=line-too-long
-            elif isinstance(temp_class, argtoolbox.BasicProgram) or isinstance(temp_class, argtoolbox.DefaultProgram):
+            elif isinstance(temp_class, argtoolbox.DefaultProgram):
                 glog.debug("variable name found : " + str(i))
                 glog.debug("variable type found : " + str(type(temp_class)))
+                result = temp_class.config
+                break
+            elif isinstance(temp_class, argtoolbox.BasicProgram):
+                glog.debug("variable name found : " + str(i))
+                glog.debug("variable type found : " + str(type(temp_class)))
+                temp_class.add_config_options()
                 result = temp_class.config
                 break
         if result:
@@ -240,7 +245,7 @@ class MyProgram(BasicProgram):
         # Command register
         parser_tmp = subparsers.add_parser(
             'register',
-            formatter_class = argparse.RawTextHelpFormatter,
+            formatter_class=argparse.RawTextHelpFormatter,
             help="""This command is used to enable auto completion for program
 based on argparse module using argcomplete module.
 

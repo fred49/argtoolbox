@@ -386,7 +386,10 @@ class _AbstractSection(object):
         f.write("[" + self._name + "]\n")
         if self._desc and comments:
             f.write("# Description : ")
-            f.write(self._desc)
+            for i in self._desc.split('\n'):
+                f.write("# ")
+                f.write(i)
+                f.write("\n")
             f.write("\n")
 
 
@@ -800,7 +803,10 @@ config file." % {"name": self._name}
             f.write("\n")
             if self._desc and self._desc != argparse.SUPPRESS:
                 f.write("# Description : ")
-                f.write(self._desc)
+                for i in self._desc.split('\n'):
+                    f.write("# ")
+                    f.write(i)
+                    f.write("\n")
                 f.write("\n")
 
         if not self.conf_required:
