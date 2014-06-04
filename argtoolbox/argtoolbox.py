@@ -1077,7 +1077,7 @@ class DefaultProgram(object):
             llog.setLevel(logging.DEBUG)
             streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
             if self.config:
-                print "debug>>>----------- config ------------------"
+                print "debug>>>----------- config -------------------"
                 print unicode(self.config)
                 print "debug----------- processing --------------<<<<"
 
@@ -1105,15 +1105,16 @@ class BasicProgram(object):
     """ TODO """
 
     def __init__(self, name, config_file=None, desc=None,
-                 mandatory=False, use_config_file=True):
+                 mandatory=False, use_config_file=True, version="0.1-alpha"):
 
         # create configuration
         self.config = Config(name, config_file=config_file, desc=desc,
                              mandatory=mandatory,
                              use_config_file=use_config_file)
         self.parser = None
-
+        self.version = version
         self.log = self.init_logger()
+        self.formatter_class = None
 
     def init_logger(self):
         # logger
@@ -1140,26 +1141,38 @@ class BasicProgram(object):
                     default=0,
                     desc="""debug level : default : 0."""))
 
+    def load(self):
+        # loading default configuration from the file
+        self.config.load()
+
     def init_parser(self):
         # arguments parser
         self.parser = self.config.get_parser()
+        if self.formatter_class:
+            self.parser.formatter_class = self.formatter_class
         self.parser.add_argument('-v', '--verbose',
                                  action="store_true",
                                  default=False)
         self.parser.add_argument('--version',
                                  action="version",
-                                 version="%(prog)s 0.1")
+                                 version="%(prog)s " + self.version)
 
-    def add_pre_arguments(self):
+
+    def add_pre_commands(self):
         """ You can override this method in order to add your command line
         arguments to the argparse parser. The configuration file is already
         loaded at this time."""
         pass
 
+    def reload(self):
+        # reloading configuration with previous optional arguments
+        # (example : config file name from argv, ...)
+        self.config.reload()
+
     def add_commands(self):
         """ You can override this method in order to add your command line
-        arguments to the argparse parser. The configuration file is already
-        loaded at this time."""
+        arguments to the argparse parser. The configuration file  was
+        reloaded at this time."""
         self.parser.add_argument(
             '-d',
             action="count",
@@ -1171,18 +1184,18 @@ class BasicProgram(object):
         self.add_config_options()
 
         # loading default configuration from the file
-        self.config.load()
+        self.load()
 
         # initialisation of the cli parser,
         # some default arguments are also added.
         self.init_parser()
 
         # adding some user arguments
-        self.add_pre_arguments()
+        self.add_pre_commands()
 
         # reloading configuration with previous optional arguments
         # (example : config file name from argv, ...)
-        self.config.reload()
+        self.reload()
 
         # adding all commands
         self.add_commands()
@@ -1241,94 +1254,3 @@ def _query_yes_no(question, default="yes"):
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
-
-
-# -----------------------------------------------------------------------------
-# MAIN
-# -----------------------------------------------------------------------------
-if __name__ == "__main__":
-
-    sample_config = """
-[ldap]
-
-host=127.0.0.1
-port=389
-suffix=dc=nodomain
-account=cn=admin,dc=nodomain
-password=toto
-
-\n"""
-
-    # logger
-    glog = logging.getLogger()
-    glog.setLevel(logging.INFO)
-    # logger handlers
-    glog.addHandler(streamHandler)
-    # debug mode
-    # if you need debug during class construction, file config loading, ...,
-    # you need to modify the logger level here.
-    #glog.setLevel(logging.DEBUG)
-    #streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
-
-    # create configuration
-    myconfig = Config("sample-program",
-                      config_file=io.BytesIO(sample_config),
-                      desc="""Just a description for a sample program.
-This program supports argcomplete.
-To enable it, run in bash terminal:
-    eval "$(register-python-argcomplete argtoolbox.py)"
-""")
-
-    # section ldap
-    section_ldap = myconfig.add_section(SimpleSection("ldap"))
-    section_ldap.add_element(Element('debug',
-                                     e_type=int,
-                                     default=0,
-                                     desc="""debug level : default : 0."""))
-    section_ldap.add_element(Element('host',
-                                     required=True,
-                                     default="192.168.1.1"))
-    section_ldap.add_element(Element('account', required=True))
-    section_ldap.add_element(Element('port', e_type=int))
-    section_ldap.add_element(Element('password',
-                                     required=True,
-                                     hidden=True,
-                                     desc="account password to ldap",
-                                     hooks=[Base64ElementHook(), ]))
-
-    # loading default configuration
-    myconfig.load()
-
-    # -------------------------------------------------------------------------
-    # arguments parser
-    # -------------------------------------------------------------------------
-    myparser = myconfig.get_parser(
-        formatter_class=argparse.RawTextHelpFormatter)
-    # pylint: disable-msg=W0142
-    myparser.add_argument('-d', action="count",
-                          **myconfig.ldap.debug.get_arg_parse_arguments())
-    myparser.add_argument('-v', '--verbose',
-                          action="store_true",
-                          default=False)
-    myparser.add_argument('--version',
-                          action="version",
-                          version="%(prog)s 0.1")
-
-    # reloading configuration with previous optional arguments
-    # (example : config file name from argv, ...)
-    myconfig.reload()
-
-    # Adding all others parsers.
-    subparsers = myparser.add_subparsers()
-    parser_tmp = subparsers.add_parser(
-        'test',
-        help="This simple command print cli argv and configuration read \
-form config file.")
-    parser_tmp.set_defaults(__func__=TestCommand(myconfig))
-
-    # run
-    prog = DefaultProgram(myparser)
-    if prog():
-        sys.exit(0)
-    else:
-        sys.exit(1)
