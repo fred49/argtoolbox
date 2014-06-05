@@ -36,6 +36,7 @@ from ordereddict import OrderedDict
 import ConfigParser
 import argparse
 import types
+import locale
 
 # -----------------------------------------------------------------------------
 # global logger variable
@@ -521,7 +522,7 @@ class ListSection(_AbstractSection):
         section = self.get_section_name()
         try:
 
-            # TODO : ? : data = data.decode('UTF-8')
+            # TODO : ? : data = data.decode(locale.getpreferredencoding())
             for key in [item for item in file_parser.options(section)
                         if item not in file_parser.defaults().keys()]:
                 self.elements[key] = file_parser.get(section, key)
@@ -704,7 +705,7 @@ class Element(object):
                 elif self.e_type == list:
                     data = file_parser.get(section_name, self._name)
                     data = data.strip()
-                    data = data.decode('UTF-8')
+                    data = data.decode(locale.getpreferredencoding())
                     data = data.split()
                     if not data:
                         msg = "The optional field '%(name)s' was present, \
@@ -722,7 +723,7 @@ list." % {"name": self._name}
                         string." % {"name": self._name}
                         log.error(msg)
                         raise ValueError(msg)
-                    data = data.decode('UTF-8')
+                    data = data.decode(locale.getpreferredencoding())
                 else:
                     msg = "Data type not supported : %(type)s " % {
                           "type": self.e_type}
