@@ -40,7 +40,7 @@ from subprocess import call
 
 
 # if you want to debug argcomplete completion,
-# you just need to export ARC_DEBUG=True
+# you just need to export _ARC_DEBUG=True
 
 class ConfigGenerationCommand(object):
     """This command read a existing program and generate the associated

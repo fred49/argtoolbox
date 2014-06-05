@@ -4,6 +4,10 @@
 
 from __future__ import unicode_literals
 
+import sys
+import locale
+import codecs
+
 from argtoolbox import DefaultCommand
 from argtoolbox import BasicProgram
 # pylint: disable-msg=W0611
@@ -12,8 +16,9 @@ from argtoolbox import SimpleSection
 from argtoolbox import Element
 
 # if you want to debug argcomplete completion,
-# you just need to export ARC_DEBUG=True
+# you just need to export _ARC_DEBUG=True
 
+sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
 # -----------------------------------------------------------------------------
 # pylint: disable-msg=R0903
 class #{command_name_class}Command(DefaultCommand):

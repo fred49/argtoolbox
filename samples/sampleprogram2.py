@@ -32,7 +32,7 @@ from argtoolbox import TestCommand
 from argtoolbox import SimpleSection, Element, Base64ElementHook
 
 # if you want to debug argcomplete completion,
-# you just need to export ARC_DEBUG=True
+# you just need to export _ARC_DEBUG=True
 
 # Step 1
 SAMPLE_CONFIG = """
