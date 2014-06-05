@@ -29,7 +29,6 @@ from __future__ import unicode_literals
 
 import os
 import sys
-import io
 import logging
 import base64
 import copy
@@ -185,8 +184,9 @@ class Config(object):
             if isinstance(self.config_file, types.UnicodeType):
                 discoveredFileList = self.file_parser.read(self.config_file)
             else:
-                discoveredFileList = self.file_parser.readfp(self.config_file,
-                                                            "file descriptor")
+                discoveredFileList = self.file_parser.readfp(
+                    self.config_file,
+                    "file descriptor")
         else:
             defaultFileList = []
             defaultFileList.append(self.prog_name + ".cfg")
@@ -381,7 +381,8 @@ class _AbstractSection(object):
         """
         if comments:
             f.write("#####################################\n")
-            f.write("# Section : " + "#".join(self.get_representation()) + "\n")
+            f.write("# Section : ")
+            f.write("#".join(self.get_representation()) + "\n")
             f.write("#####################################\n")
         f.write("[" + self._name + "]\n")
         if self._desc and comments:
@@ -724,7 +725,7 @@ list." % {"name": self._name}
                     data = data.decode('UTF-8')
                 else:
                     msg = "Data type not supported : %(type)s " % {
-                            "type": self.e_type}
+                          "type": self.e_type}
                     log.error(msg)
                     raise TypeError(msg)
 
@@ -1048,8 +1049,8 @@ class DefaultCompleter(object):
             #a = parser.parse_known_args()
 
             # getting form args the current Command and looking for a method
-            # called by default 'complete'. See __init__ method.
-            # The method name is store in the class member called self.func_name
+            # called by default 'complete'. See __init__ method. The method
+            # name is store in the class member called self.func_name
             fn = getattr(args.__func__, self.func_name, None)
             if fn:
                 return fn(args, prefix)
@@ -1162,7 +1163,6 @@ class BasicProgram(object):
         self.parser.add_argument('--version',
                                  action="version",
                                  version="%(prog)s " + self.version)
-
 
     def add_pre_commands(self):
         """ You can override this method in order to add your command line

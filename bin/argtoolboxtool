@@ -257,7 +257,6 @@ registering support (see global or user options)
 
 """)
 
-
         register_group = parser_tmp.add_argument_group('register')
         group = register_group.add_mutually_exclusive_group(required=True)
         group.add_argument(
@@ -292,13 +291,11 @@ which support it.
             """)
         parser_tmp.set_defaults(__func__=RegisterCommand(self.config))
 
-
         # Command list registered commands
         parser_tmp = subparsers.add_parser(
             'list-registered',
             help="List already registered scripts")
         parser_tmp.set_defaults(__func__=ListRegisteredCommand(self.config))
-
 
         # Command new
         parser_tmp = subparsers.add_parser(
@@ -315,7 +312,6 @@ which support it.
             action="store_true",
             help="overwrite the current output file even it still exists.")
         parser_tmp.set_defaults(__func__=GenerateCommand(self.config))
-
 
         # Command generate
         parser_tmp = subparsers.add_parser(
