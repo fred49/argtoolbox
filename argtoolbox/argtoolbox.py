@@ -727,16 +727,16 @@ list." % {"name": self._name}
                     data = data.decode(locale.getpreferredencoding())
                 else:
                     msg = "Data type not supported : %(type)s " % {
-                          "type": self.e_type}
+                        "type": self.e_type}
                     log.error(msg)
                     raise TypeError(msg)
 
             except ValueError as ex:
                 msg = "The current field '%(name)s' was present, but the \
-required type is : %(e_type)s." % {
-                    "name": self._name,
-                    "e_type": self.e_type
-                    }
+required type is : %(e_type)s." %  {
+                "name": self._name,
+                "e_type": self.e_type
+                }
                 log.error(msg)
                 log.error(str(ex))
                 raise ValueError(str(ex))
@@ -1141,6 +1141,7 @@ class BasicProgram(object):
         self.config = Config(name, config_file=config_file, desc=desc,
                              mandatory=mandatory,
                              use_config_file=use_config_file)
+        self.prog_name = name
         self.parser = None
         self.version = version
         self.formatter_class = None
@@ -1163,12 +1164,13 @@ class BasicProgram(object):
             streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
         if self.force_debug_to_file:
-            dest = os.path.join(tempfile.gettempdir(), self.config.name + ".log")
+            dest = self.prog_name + ".log"
             FILEHA = logging.FileHandler(dest, 'w', 'utf-8')
             FILEHA.setFormatter(DEBUG_LOGGING_FORMAT)
-            logging.getLogger().setLevel(logging.DEBUG)
-            logging.getLogger().addHandler(FILEHA)
+            log.setLevel(logging.DEBUG)
+            log.addHandler(FILEHA)
             streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
+            log.warning("output log file : " + dest)
         return log
 
     def add_config_options(self):
@@ -1241,7 +1243,8 @@ class BasicProgram(object):
         self.add_commands()
 
         # run
-        run = DefaultProgram(self.parser, self.config, force_debug = self.force_debug)
+        run = DefaultProgram(self.parser, self.config,
+                             force_debug=self.force_debug)
         if run():
             sys.exit(0)
         else:
