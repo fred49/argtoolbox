@@ -37,6 +37,7 @@ import ConfigParser
 import argparse
 import types
 import locale
+import tempfile
 
 # -----------------------------------------------------------------------------
 # global logger variable
@@ -1065,9 +1066,10 @@ class DefaultCompleter(object):
 class DefaultProgram(object):
     """ TODO """
 
-    def __init__(self, parser, config=None):
+    def __init__(self, parser, config=None, force_debug=False):
         self.parser = parser
         self.config = config
+        self.force_debug = force_debug
 
     def __call__(self):
         # integration with argcomplete python module (bash completion)
@@ -1078,9 +1080,9 @@ class DefaultProgram(object):
             pass
 
         # parse cli arguments
-        args = self.parser.parse_args()
+        args = self.parse_args()
 
-        if getattr(args, 'debug', False):
+        if getattr(args, 'debug', False) or self.force_debug:
             llog = logging.getLogger()
             llog.setLevel(logging.DEBUG)
             streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
@@ -1108,12 +1110,32 @@ class DefaultProgram(object):
             return False
 
 
+    def parse_args(self):
+        args = self.parser.parse_args()
+        for attr in args.__dict__:
+            data = getattr(args, attr)
+            if isinstance(data, str):
+                data = data.decode(locale.getpreferredencoding())
+                setattr(args, attr, data)
+
+            if isinstance(data, list):
+                res = []
+                for val in data:
+                    if isinstance(val, str):
+                        res.append(val.decode(locale.getpreferredencoding()))
+                    else:
+                        res.append(val)
+                setattr(args, attr, res)
+        return args
+
+
 # -----------------------------------------------------------------------------
 class BasicProgram(object):
     """ TODO """
 
     def __init__(self, name, config_file=None, desc=None,
-                 mandatory=False, use_config_file=True, version="0.1-alpha"):
+                 mandatory=False, use_config_file=True, version="0.1-alpha",
+                 force_debug=False, force_debug_to_file=False):
 
         # create configuration
         self.config = Config(name, config_file=config_file, desc=desc,
@@ -1121,8 +1143,10 @@ class BasicProgram(object):
                              use_config_file=use_config_file)
         self.parser = None
         self.version = version
-        self.log = self.init_logger()
         self.formatter_class = None
+        self.force_debug = force_debug
+        self.force_debug_to_file = force_debug_to_file
+        self.log = self.init_logger()
 
     def init_logger(self):
         # logger
@@ -1134,8 +1158,17 @@ class BasicProgram(object):
         # debug mode
         # if you want to enable debug during class construction, file
         # configuration loading, ..., you need to modify the logger level here.
-        #log.setLevel(logging.DEBUG)
-        #streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
+        if self.force_debug:
+            log.setLevel(logging.DEBUG)
+            streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
+
+        if self.force_debug_to_file:
+            dest = os.path.join(tempfile.gettempdir(), self.config.name + ".log")
+            FILEHA = logging.FileHandler(dest, 'w', 'utf-8')
+            FILEHA.setFormatter(DEBUG_LOGGING_FORMAT)
+            logging.getLogger().setLevel(logging.DEBUG)
+            logging.getLogger().addHandler(FILEHA)
+            streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
         return log
 
     def add_config_options(self):
@@ -1208,7 +1241,7 @@ class BasicProgram(object):
         self.add_commands()
 
         # run
-        run = DefaultProgram(self.parser, self.config)
+        run = DefaultProgram(self.parser, self.config, force_debug = self.force_debug)
         if run():
             sys.exit(0)
         else:
