@@ -29,6 +29,9 @@ from __future__ import unicode_literals
 import sys
 import os
 import shlex
+import shutil
+import uuid
+import tempfile
 import importlib
 import logging
 import argparse
@@ -50,15 +53,24 @@ class ConfigGenerationCommand(object):
         glog.debug("args : " + str(args))
         if args.debug:
             glog.setLevel(logging.DEBUG)
-        config = self.getconfig(args)
+        config = self.getconfig(args.program)
         self.generate(args, config)
 
     # pylint: disable=no-self-use
-    def getconfig(self, args):
+    def getconfig(self, program):
         """Looking for a Config Object into the input program."""
         glog.info("Looking for Config object into input program ...")
-        glog.debug("input program name : '" + str(args.program) + "'")
-        program = args.program
+        glog.debug(u"input program name : '" + program + u"'")
+
+        if not os.path.exists(program):
+            glog.error("the current input program does not exist : " + program)
+            raise IOError('No such file')
+
+        dest = os.path.join(tempfile.gettempdir(), unicode(uuid.uuid4()).replace("-", "") + ".py")
+        shutil.copyfile(program, dest)
+
+        program = dest
+
         local_dir = os.path.dirname(program)
         glog.debug("local_dir : '" + str(local_dir) + "'")
         sys.path.append(local_dir)
@@ -91,6 +103,11 @@ class ConfigGenerationCommand(object):
                 break
         if result:
             glog.info("Config object found : " + result.prog_name)
+        os.remove(program)
+        program += "c"
+        if os.path.exists(program):
+            os.remove(program)
+
         return result
 
     # pylint: disable=no-self-use
