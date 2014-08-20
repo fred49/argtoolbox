@@ -38,6 +38,7 @@ import argparse
 import argtoolbox
 from argtoolbox import BasicProgram
 from argtoolbox import DefaultCommand
+from argtoolbox import DefaultCompleter as Completer
 from argtoolbox import query_yes_no
 from subprocess import call
 
@@ -62,11 +63,22 @@ class ConfigGenerationCommand(object):
         glog.info("Looking for Config object into input program ...")
         glog.debug(u"input program name : '" + program + u"'")
 
+        for path in os.environ['PATH'].split(':'):
+            if os.path.isdir(path):
+                for fil in os.listdir(path):
+                    fullfile = path + "/" + fil
+                    if os.path.isfile(fullfile) or os.path.islink(fullfile):
+                        if fil == program:
+                            program = fullfile
+                            break
+        glog.info("Program found : " + program)
         if not os.path.exists(program):
             glog.error("the current input program does not exist : " + program)
             raise IOError('No such file')
 
-        dest = os.path.join(tempfile.gettempdir(), unicode(uuid.uuid4()).replace("-", "") + ".py")
+        dest = os.path.join(
+            tempfile.gettempdir(),
+            unicode(uuid.uuid4()).replace("-", "") + ".py")
         shutil.copyfile(program, dest)
 
         program = dest
@@ -136,6 +148,17 @@ class ConfigGenerationCommand(object):
         config.write_default_config_file(configfile, args.nocomments)
         glog.info("Done.")
 
+    def complete_bin(self, args, prefix):
+        """autocomplete binary file into the $PATH"""
+        results = []
+        for path in os.environ['PATH'].split(':'):
+            if os.path.isdir(path):
+                for fil in os.listdir(path):
+                    fullfile = path + "/" + fil
+                    if os.path.isfile(fullfile) or os.path.islink(fullfile):
+                        if fil.startswith(prefix):
+                            results.append(fil)
+        return results
 
 # pylint:disable=no-init
 # pylint:disable=too-few-public-methods
@@ -336,7 +359,9 @@ which support it.
             help="""Scan an existing program and generate the associated
              configuration file""")
         parser_tmp.add_argument('--output', action="store")
-        parser_tmp.add_argument('program', action="store")
+        parser_tmp.add_argument(
+            'program',
+            action="store").completer = Completer("complete_bin")
         parser_tmp.add_argument(
             '-n',
             dest="nocomments",
