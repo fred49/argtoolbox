@@ -37,7 +37,6 @@ import ConfigParser
 import argparse
 import types
 import locale
-import tempfile
 
 # -----------------------------------------------------------------------------
 # global logger variable
@@ -232,7 +231,7 @@ class Config(object):
         # often partial help. help action will be added during
         # reloading step for parser.parse_args()
         if self.use_config_file:
-            self.parser.add_argument('-c', '--config-file',
+            self.parser.add_argument('--config-file',
                                      action="store",
                                      help="Other configuration file.")
         return self.parser
