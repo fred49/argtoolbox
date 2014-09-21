@@ -134,8 +134,8 @@ class ConfigGenerationCommand(object):
         glog.info("The default configuration file name is : " + configfile)
         if args.output:
             configfile = args.output
-            if configfile[:-4] != ".conf":
-                configfile += ".conf"
+            if configfile[-4:] != ".cfg":
+                configfile += ".cfg"
             glog.warn("Using '" + configfile + "' as configuration file name.")
 
         if not args.force_yes:
