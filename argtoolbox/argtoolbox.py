@@ -279,7 +279,9 @@ class Config(object):
             log = logging.getLogger('argtoolbox')
             log.debug("reloading configuration ...")
             if args.config_file:
-                self.file_parser.read(args.config_file)
+                self.file_parser = ConfigParser.SafeConfigParser()
+                discoveredFileList = self.file_parser.read(args.config_file)
+                log.debug("discoveredFileList: " + str(discoveredFileList))
             for s in self.sections.values():
                 log.debug("loading section : " + s.get_section_name())
                 s.load(self.file_parser)
