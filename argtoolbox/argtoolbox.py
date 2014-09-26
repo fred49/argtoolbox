@@ -284,6 +284,7 @@ class Config(object):
                 log.debug("discoveredFileList: " + str(discoveredFileList))
             for s in self.sections.values():
                 log.debug("loading section : " + s.get_section_name())
+                s.reset()
                 s.load(self.file_parser)
             log.debug("configuration reloaded.")
 
@@ -423,6 +424,10 @@ class _Section(_AbstractSection):
         Section"""
         return len(self.elements)
 
+    def reset(self):
+        for e in self.elements.values():
+            e.reset()
+
     def load(self, file_parser):
         section = self.get_section_name()
         try:
@@ -536,6 +541,10 @@ class ListSection(_AbstractSection):
                 raise ValueError(e)
             else:
                 log.debug("Missing section : " + section)
+
+    def reset(self):
+        for e in self.elements.values():
+            e.reset()
 
     def get_representation(self, prefix="", suffix="\n"):
         res = []
@@ -767,6 +776,9 @@ config file." % {"name": self._name}
 '%(data)s', type : '%(e_type)s'", log_data)
             else:
                 log.debug("Field not found : '" + self._name + "'")
+
+    def reset(self):
+        self.value = None
 
     def get_arg_parse_arguments(self):
         """
