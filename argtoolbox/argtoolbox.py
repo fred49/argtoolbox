@@ -1105,15 +1105,13 @@ class DefaultProgram(object):
                 print "debug----------- processing --------------<<<<"
 
             # run command
-            args.__func__(args)
-            return True
+            return args.__func__(args)
         else:
             # pylint: disable-msg=W0621
             log = logging.getLogger('argtoolbox')
             try:
                 # run command
-                args.__func__(args)
-                return True
+                return args.__func__(args)
             except ValueError as a:
                 log.error("ValueError : " + str(a))
             except KeyboardInterrupt as a:
