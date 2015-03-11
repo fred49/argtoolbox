@@ -584,7 +584,7 @@ class Element(object):
     # pylint: disable-msg=R0913
     def __init__(self, name, e_type=str, required=False, default=None,
                  conf_hidden=False, conf_required=False, desc=None,
-                 hooks=None, hidden=False):
+                 hooks=None, hidden=False, e_type_exclude=False):
         """Information about how to declare a element which will be load from a
         configuration file.
 
@@ -593,6 +593,9 @@ class Element(object):
     - name    -- name of the attribute store into the configuration file.
 
     - e_type -- Data type of the attribute.
+
+    - e_type_exclude -- Do not export data type to argparse. Example there is a
+    conflict between type=int and action=count for argparse parameters.
 
     - conf_required -- The current attribute must be present in the
     configuration file.
@@ -622,6 +625,7 @@ class Element(object):
 
         self._name = name
         self.e_type = e_type
+        self.e_type_exclude = e_type_exclude
         self._required = required
         self.default = default
         self._desc = desc
@@ -796,6 +800,10 @@ config file." % {"name": self._name}
             else:
                 ret["required"] = True
         ret["dest"] = self._name
+        if not self.e_type_exclude:
+            if self.e_type == int or self.e_type == float:
+                # Just override argparse.add_argument 'type' parameter for int or float.
+                ret["type"] = self.e_type
         if self.value is not None:
             ret["default"] = self.value
         if self._desc:
@@ -1003,9 +1011,9 @@ class DefaultCommand(object):
         for i in dict_tmp.__dict__:
             attribute = getattr(dict_tmp, i)
             if isinstance(attribute, types.UnicodeType):
-                self.log.debug(i + " : " + attribute)
+                self.log.debug(i + " : " + attribute + " : <type 'unicode'>")
             else:
-                self.log.debug(i + " : " + str(attribute))
+                self.log.debug(i + " : " + str(attribute) + " : " + str(type(attribute)))
         self.log.debug("Namespace : end.")
 
     # pylint: disable-msg=W0613
@@ -1192,6 +1200,7 @@ class BasicProgram(object):
         default.add_element(
             Element('debug',
                     e_type=int,
+                    e_type_exclude=True,
                     default=0,
                     desc="""debug level : default : 0."""))
 
