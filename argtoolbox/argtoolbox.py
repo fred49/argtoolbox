@@ -245,10 +245,12 @@ class Config(object):
         4. reloading configuration using cli argument like a configuration
         file name.
         """
+        #from argcomplete import debug
         # Parsing the command line looking for the previous options like
         # configuration file name or server section. Extra arguments
         # will be store into argv.
         args = None
+
         if os.environ.get('_ARGCOMPLETE'):
             # During argcomplete completion, parse_known_args will return an
             # empty Namespace. In this case, we feed the previous function with
@@ -257,7 +259,6 @@ class Config(object):
             args = self.parser.parse_known_args(compline.split()[1:])[0]
         else:
             args = self.parser.parse_known_args()[0]
-
         if hooks is not None:
             if isinstance(hooks, list):
                 for h in hooks:
@@ -1080,7 +1081,9 @@ class DefaultCompleter(object):
 
         # pylint: disable-msg=W0703
         except Exception as e:
-            debug("\nERROR:An exception was caught :" + str(e) + "\n")
+            from argcomplete import warn
+            warn("\nERROR::COMPLETE:An exception was caught :" + str(e) + "\n")
+            return ["comlete-error"]
 
 
 # -----------------------------------------------------------------------------
@@ -1117,6 +1120,7 @@ class DefaultProgram(object):
         else:
             # pylint: disable-msg=W0621
             log = logging.getLogger('argtoolbox')
+            from argparse import ArgumentError
             try:
                 # run command
                 return args.__func__(args)
@@ -1124,6 +1128,8 @@ class DefaultProgram(object):
                 log.error("ValueError : " + str(a))
             except KeyboardInterrupt as a:
                 log.warn("Keyboard interruption detected.")
+            except ArgumentError as a:
+                self.parser.error(a.message)
             except Exception as a:
                 log.error("unexcepted error : " + str(a))
             return False
