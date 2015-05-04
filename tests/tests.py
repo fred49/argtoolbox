@@ -58,7 +58,7 @@ elt_list_value=test aa aarrr kkkk mmmmm
 
 \n"""
         self.c = Config("linshare-cli",
-                        config_file=io.BytesIO(sample_config),
+                        config_file=io.StringIO(sample_config),
                         desc=" simple user cli for linshare")
         self.s = self.c.get_default_section()
 
