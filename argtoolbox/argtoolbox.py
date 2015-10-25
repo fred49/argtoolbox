@@ -165,6 +165,11 @@ class Config(object):
         self.sections[section.get_key_name()] = section
         return section
 
+    def get_section(self, name):
+        if name.lower() == "default":
+            return self._default_section
+        return self.sections.get(name)
+
     def get_default_section(self):
         """This method will return default section object"""
         return self._default_section
@@ -293,7 +298,7 @@ class Config(object):
         if name.lower() == "default":
             return self._default_section
         s = self.sections.get(name)
-        if s:
+        if s is not None:
             return s
         else:
             raise AttributeError("'%(class)s' object has no attribute \
@@ -445,11 +450,14 @@ class _Section(_AbstractSection):
 
     def __getattr__(self, name):
         e = self.elements.get(name)
-        if e:
+        if e is not None:
             return e
         else:
             raise AttributeError("'%(class)s' object has no attribute \
 '%(name)s'" % {"name": name, "class": self.__class__.__name__})
+
+    def get_element(self, name):
+        return self.elements.get(name)
 
     def write_config_file(self, f, comments):
         """This method write a sample file, with attributes, descriptions,
@@ -558,16 +566,6 @@ class ListSection(_AbstractSection):
             a.append(suffix)
             res.append("".join(a))
         return res
-
-    def __getattr__(self, name):
-
-        e = self.elements.get(name)
-        if e is not None:
-            return e
-        else:
-            raise AttributeError(
-                "'%(class)s' object has no attribute '%(name)s'"
-                % {"name": name, "class": self.__class__.__name__})
 
 
 # -----------------------------------------------------------------------------
