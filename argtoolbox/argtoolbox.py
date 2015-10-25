@@ -393,6 +393,7 @@ class _AbstractSection(object):
             f.write("#####################################\n")
             f.write("# Section : ")
             f.write("#".join(self.get_representation()) + "\n")
+            f.write("#".join(self.get_representation()) + "\n")
             f.write("#####################################\n")
         f.write("[" + self._name + "]\n")
         if self._desc and comments:
@@ -665,12 +666,15 @@ class Element(object):
             res.append(prefix + " - " + str(self._name)
                        + " : xxxxxxxx" + suffix)
         else:
+            default = self.default
+            if default is None:
+                default = " - "
             a = prefix + " - "
             a += str(self._name) + " : "
-            if isinstance(self.value, types.UnicodeType):
-                a += self.value
+            if isinstance(default, types.UnicodeType):
+                a += default
             else:
-                a += str(self.value)
+                a += str(default)
             a += suffix
             res.append(a)
         return res
