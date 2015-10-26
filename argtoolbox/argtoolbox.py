@@ -393,7 +393,6 @@ class _AbstractSection(object):
             f.write("#####################################\n")
             f.write("# Section : ")
             f.write("#".join(self.get_representation()) + "\n")
-            f.write("#".join(self.get_representation()) + "\n")
             f.write("#####################################\n")
         f.write("[" + self._name + "]\n")
         if self._desc and comments:
@@ -977,6 +976,7 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
 
     def get_representation(self, prefix="", suffix="\n"):
         res = ['\n']
+        res.append('#')
         temp_line = prefix + " - " + str(self._name) + " : "
         if self.hidden:
             temp_line += "xxxxxxxx" + suffix
@@ -984,6 +984,8 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
             temp_line += str(self.value) + suffix
         res.append(temp_line)
 
+        res.append("".join(self.rss.get_representation(prefix + "#\t")))
+        res.append('\n')
         if len(self.sections) > 0:
             for elt in self.sections.values():
                 res.append('\n')
