@@ -1100,8 +1100,44 @@ class DefaultProgram(object):
         self.force_debug = force_debug
 
     def __call__(self):
+
+        def patch(self, parser, namespace, values, option_string=None):
+            """patch original __call__ method for argparse 1.1 (fix)"""
+            from argparse import _UNRECOGNIZED_ARGS_ATTR
+            from argparse import SUPPRESS
+            from argparse import _
+
+            parser_name = values[0]
+            arg_strings = values[1:]
+
+            # set the parser name if requested
+            if self.dest is not SUPPRESS:
+                setattr(namespace, self.dest, parser_name)
+
+            # select the parser
+            try:
+                parser = self._name_parser_map[parser_name]
+            except KeyError:
+                tup = parser_name, ', '.join(self._name_parser_map)
+                msg = _('unknown parser %r (choices: %s)') % tup
+                raise ArgumentError(self, msg)
+
+            # parse all the remaining options into the namespace
+            # store any unrecognized options on the object, so that the top
+            # level parser can decide what to do with them
+
+            namespace, arg_strings = parser.parse_known_args(arg_strings,
+                                                             namespace)
+            if arg_strings:
+                vars(namespace).setdefault(_UNRECOGNIZED_ARGS_ATTR, [])
+                getattr(namespace, _UNRECOGNIZED_ARGS_ATTR).extend(arg_strings)
+
         # integration with argcomplete python module (bash completion)
         try:
+            # Very ugly dirty hook/fix
+            if argparse.__version__ == "1.1":
+                # pylint: disable=protected-access
+                argparse._SubParsersAction.__call__ = patch
             import argcomplete
             argcomplete.autocomplete(self.parser)
         except ImportError:
