@@ -1087,6 +1087,9 @@ class DefaultCompleter(object):
         except Exception as e:
             from argcomplete import warn
             warn("\nERROR::COMPLETE:An exception was caught :" + str(e) + "\n")
+            import traceback
+            traceback.print_exc()
+            debug("\n------\n")
             return ["comlete-error"]
 
 
