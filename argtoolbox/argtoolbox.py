@@ -47,7 +47,7 @@ import locale
 DEFAULT_LOGGING_FORMAT = logging.Formatter(
     "%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
 DEBUG_LOGGING_FORMAT = logging.Formatter(
-    "%(asctime)s %(levelname)-8s %(name)s:%(funcName)s:%(message)s",
+    "%(asctime)s %(levelname)-8s %(module)s:%(name)s:%(funcName)s:%(lineno)d:%(message)s",
     "%H:%M:%S")
 # logger handlers
 # pylint: disable-msg=C0103
