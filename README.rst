@@ -152,7 +152,7 @@ In the cas you have a lot of command and option, it could be usefull to store
 default values in a configuration file like ``sample-program.cfg``
 
 
-1. Imports :
+4. Imports :
 ~~~~~~~~~~~~
 
 First of all, you just need the following classes to build your own script :
@@ -173,7 +173,7 @@ First of all, you just need the following classes to build your own script :
 
 
 
-2. Declaration :
+5. Declaration :
 ~~~~~~~~~~~~~~~~
 
 There is a script called sample-program2.py which contains all the following
@@ -271,8 +271,8 @@ lines of code.
         # Step 10
         PROG()
 
-3. Utilisation :
-~~~~~~~~~~~~~~~
+6. Utilisation :
+~~~~~~~~~~~~~~~~
 
 Now you can run your command :
 
