@@ -1162,8 +1162,13 @@ class DefaultProgram(object):
         args = self.parse_args()
 
         if getattr(args, 'debug', False) or self.force_debug:
-            llog = logging.getLogger()
-            llog.setLevel(logging.DEBUG)
+            if hasattr(args, 'debugger_names') and getattr(args, 'debugger_names'):
+                for name in args.debugger_names:
+                    llog = logging.getLogger(name)
+                    llog.setLevel(logging.DEBUG)
+            else:
+                llog = logging.getLogger()
+                llog.setLevel(logging.DEBUG)
             streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
             if self.config:
                 print "debug>>>----------- config -------------------"
