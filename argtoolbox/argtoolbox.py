@@ -632,7 +632,7 @@ class Element(object):
         self.conf_required = conf_required
         self._desc_for_config = None
         self._desc_for_argparse = None
-        self.value = None
+        self._value = None
         self.hidden = hidden
 
         if hooks is None:
@@ -650,6 +650,18 @@ class Element(object):
             else:
                 raise TypeError(
                     "Hook argument should be a subclass of DefaultHook")
+
+    @property
+    def value(self):
+        """TODO"""
+        if self._value is None:
+            return self.default
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        """TODO"""
+        self._value = value
 
     def get_name(self):
         """This method will return the name of the current element"""
