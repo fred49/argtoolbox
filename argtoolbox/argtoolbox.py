@@ -25,18 +25,17 @@
 #  Frédéric MARTIN frederic.martin.fma@gmail.com
 #
 
-from __future__ import unicode_literals
+
 
 import os
 import sys
 import logging
 import base64
 import copy
-from ordereddict import OrderedDict
-import ConfigParser
+from collections import OrderedDict
+import configparser
 import argparse
-import types
-import locale
+from argparse import ArgumentError
 
 # -----------------------------------------------------------------------------
 # global logger variable
@@ -121,12 +120,12 @@ class SectionHook(object):
             raise TypeError("First argument should be a subclass of _Section.")
         self.section = section
 
-        if not isinstance(attribute, types.UnicodeType):
+        if not isinstance(attribute, str):
             raise TypeError("Second argument should be a string, "
                             + "attribute name.")
         self.attribute = attribute
 
-        if not isinstance(opt_name, types.UnicodeType):
+        if not isinstance(opt_name, str):
             raise TypeError("Third argument should be a string, option name.")
         self.opt_name = opt_name
 
@@ -155,7 +154,7 @@ class Config(object):
         self.sections = OrderedDict()
         self._default_section = self.add_section(SimpleSection("DEFAULT"))
         self.parser = None
-        self.file_parser = ConfigParser.SafeConfigParser()
+        self.file_parser = configparser.SafeConfigParser()
 
     def add_section(self, section):
         """Add a new Section object to the config. Should be a subclass of
@@ -187,7 +186,7 @@ class Config(object):
         log = logging.getLogger('argtoolbox')
         discoveredFileList = []
         if self.config_file:
-            if isinstance(self.config_file, types.UnicodeType):
+            if isinstance(self.config_file, str):
                 discoveredFileList = self.file_parser.read(self.config_file)
             else:
                 discoveredFileList = self.file_parser.readfp(
@@ -212,14 +211,14 @@ class Config(object):
 
         log.debug("loading configuration ...")
         if exit_on_failure:
-            for s in self.sections.values():
+            for s in list(self.sections.values()):
                 log.debug("loading section : " + s.get_section_name())
                 try:
                     s.load(self.file_parser)
                 except ValueError:
                     sys.exit(1)
         else:
-            for s in self.sections.values():
+            for s in list(self.sections.values()):
                 log.debug("loading section : " + s.get_section_name())
                 s.load(self.file_parser)
 
@@ -285,10 +284,10 @@ class Config(object):
             log = logging.getLogger('argtoolbox')
             log.debug("reloading configuration ...")
             if args.config_file:
-                self.file_parser = ConfigParser.SafeConfigParser()
+                self.file_parser = configparser.SafeConfigParser()
                 discoveredFileList = self.file_parser.read(args.config_file)
                 log.debug("discoveredFileList: " + str(discoveredFileList))
-            for s in self.sections.values():
+            for s in list(self.sections.values()):
                 log.debug("loading section : " + s.get_section_name())
                 s.reset()
                 s.load(self.file_parser)
@@ -307,7 +306,7 @@ class Config(object):
     def __str__(self):
         res = []
         res.append("Configuration of %(prog_name)s : " % self.__dict__)
-        for s in self.sections.values():
+        for s in list(self.sections.values()):
             res.append("".join(s.get_representation("\t")))
         return "\n".join(res)
 
@@ -330,7 +329,7 @@ class Config(object):
                         f.write("\n")
                     f.write("\n\n")
 
-                for s in self.sections.values():
+                for s in list(self.sections.values()):
                     log.debug("loading section : " + s.get_section_name())
                     s.write_config_file(f, comments)
             log.debug("config file generation completed : " + str(output))
@@ -431,15 +430,15 @@ class _Section(_AbstractSection):
         return len(self.elements)
 
     def reset(self):
-        for e in self.elements.values():
+        for e in list(self.elements.values()):
             e.reset()
 
     def load(self, file_parser):
         section = self.get_section_name()
         try:
-            for e in self.elements.values():
+            for e in list(self.elements.values()):
                 e.load(file_parser, section)
-        except ConfigParser.NoSectionError as e:
+        except configparser.NoSectionError as e:
             # pylint: disable-msg=W0621
             log = logging.getLogger('argtoolbox')
             if self._required:
@@ -468,7 +467,7 @@ class _Section(_AbstractSection):
             return
         super(_Section, self).write_config_file(f, comments)
 
-        for e in self.elements.values():
+        for e in list(self.elements.values()):
             e.write_config_file(f, comments)
         f.write("\n")
 
@@ -491,7 +490,7 @@ class SimpleSection(_Section):
         if self.count() > 0:
             res.append(prefix + "Section "
                        + self.get_section_name().upper() + suffix)
-            for elt in self.elements.values():
+            for elt in list(self.elements.values()):
                 res.append("".join(elt.get_representation(prefix)))
         return res
 
@@ -505,7 +504,7 @@ class SubSection(_Section):
         if self.count() > 0:
             res.append(prefix + "SubSection : "
                        + self.get_section_name().upper() + suffix)
-            for elt in self.elements.values():
+            for elt in list(self.elements.values()):
                 res.append("".join(elt.get_representation(prefix)))
         return res
 
@@ -520,7 +519,7 @@ class SubSection(_Section):
         newone = type(self)()
         newone.__dict__.update(self.__dict__)
         newone.elements = OrderedDict()
-        for e in self.elements.values():
+        for e in list(self.elements.values()):
             newone.add_element(copy.deepcopy(e))
         return newone
 
@@ -538,11 +537,10 @@ class ListSection(_AbstractSection):
         section = self.get_section_name()
         try:
 
-            # TODO : ? : data = data.decode(locale.getpreferredencoding())
             for key in [item for item in file_parser.options(section)
-                        if item not in file_parser.defaults().keys()]:
+                        if item not in list(file_parser.defaults().keys())]:
                 self.elements[key] = file_parser.get(section, key)
-        except ConfigParser.NoSectionError as e:
+        except configparser.NoSectionError as e:
             # pylint: disable-msg=W0621
             log = logging.getLogger('argtoolbox')
             if self._required:
@@ -552,14 +550,14 @@ class ListSection(_AbstractSection):
                 log.debug("Missing section : " + section)
 
     def reset(self):
-        for e in self.elements.values():
+        for e in list(self.elements.values()):
             e.reset()
 
     def get_representation(self, prefix="", suffix="\n"):
         res = []
         res.append(prefix + "Section " + self._name + suffix)
 
-        for key, val in self.elements.items():
+        for key, val in list(self.elements.items()):
             a = []
             a.append(prefix)
             a.append(" - " + str(key) + " : " + str(val))
@@ -682,7 +680,7 @@ class Element(object):
                 default = " - "
             a = prefix + " - "
             a += str(self._name) + " : "
-            if isinstance(default, types.UnicodeType):
+            if isinstance(default, str):
                 a += default
             else:
                 a += str(default)
@@ -734,7 +732,6 @@ class Element(object):
                 elif self.e_type == list:
                     data = file_parser.get(section_name, self._name)
                     data = data.strip()
-                    data = data.decode(locale.getpreferredencoding())
                     data = data.split()
                     if not data:
                         msg = "The optional field '%(name)s' was present, \
@@ -752,7 +749,6 @@ list." % {"name": self._name}
                         string." % {"name": self._name}
                         log.error(msg)
                         raise ValueError(msg)
-                    data = data.decode(locale.getpreferredencoding())
                 else:
                     msg = "Data type not supported : %(type)s " % {
                         "type": self.e_type}
@@ -777,7 +773,7 @@ required type is : %(e_type)s." %  {
 type : '%(e_type)s'", log_data)
             self.value = data
 
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             if self.conf_required:
                 msg = "The required field '%(name)s' was missing from the \
 config file." % {"name": self._name}
@@ -886,7 +882,7 @@ class ElementWithSubSections(Element):
         res.append(temp_line)
 
         if len(self.sections) > 0:
-            for elt in self.sections.values():
+            for elt in list(self.sections.values()):
                 res.append("".join(elt.get_representation(prefix + "\t")))
         return res
 
@@ -904,7 +900,7 @@ class ElementWithSubSections(Element):
     def load(self, file_parser, section_name):
         self._load(file_parser, section_name)
         if len(self.sections) > 0:
-            for sec in self.sections.values():
+            for sec in list(self.sections.values()):
                 sec.name = self.value
                 sec.load(file_parser)
         self.post_load()
@@ -999,7 +995,7 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
         res.append("".join(self.rss.get_representation(prefix + "#\t")))
         res.append('\n')
         if len(self.sections) > 0:
-            for elt in self.sections.values():
+            for elt in list(self.sections.values()):
                 res.append('\n')
                 res.append("".join(elt.get_representation(prefix + "\t")))
             res.append('\n')
@@ -1027,7 +1023,7 @@ class DefaultCommand(object):
         self.log.debug("Namespace : begin :")
         for i in dict_tmp.__dict__:
             attribute = getattr(dict_tmp, i)
-            if isinstance(attribute, types.UnicodeType):
+            if isinstance(attribute, str):
                 self.log.debug(i + " : " + attribute + " : <type 'unicode'>")
             else:
                 self.log.debug(i + " : " + str(attribute) + " : " + str(type(attribute)))
@@ -1048,22 +1044,22 @@ class TestCommand(DefaultCommand):
 
     def __call__(self, args):
         super(TestCommand, self).__call__(args)
-        print ""
-        print "This is the beginning of the TestCommand class."
-        print ""
+        print("")
+        print("This is the beginning of the TestCommand class.")
+        print("")
 
-        print "The loaded configuration : "
-        print "---------------------------"
-        print unicode(self.config)
-        print ""
+        print("The loaded configuration : ")
+        print("---------------------------")
+        print(str(self.config))
+        print("")
 
-        print "The command line arguments (argv) : "
-        print "------------------------------------"
-        print args
+        print("The command line arguments (argv) : ")
+        print("------------------------------------")
+        print(args)
 
-        print ""
-        print "This is the end of the TestCommand class."
-        print ""
+        print("")
+        print("This is the end of the TestCommand class.")
+        print("")
 
 
 # -----------------------------------------------------------------------------
@@ -1078,7 +1074,7 @@ class DefaultCompleter(object):
         try:
             debug("\n------------ DefaultCompleter -----------------")
             debug("Kwargs content :")
-            for i, j in kwargs.items():
+            for i, j in list(kwargs.items()):
                 debug("key : " + str(i))
                 debug("\t - " + str(j))
             debug("\n------------ DefaultCompleter -----------------\n")
@@ -1091,7 +1087,7 @@ class DefaultCompleter(object):
             # getting form args the current Command and looking for a method
             # called by default 'complete'. See __init__ method. The method
             # name is store in the class member called self.func_name
-            fn = getattr(args.__func__, self.func_name, None)
+            fn = getattr(args.__func__, self.__name__, None)
             if fn:
                 return fn(args, prefix)
 
@@ -1171,18 +1167,21 @@ class DefaultProgram(object):
                 llog.setLevel(logging.DEBUG)
             streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
             if self.config:
-                print "debug>>>----------- config -------------------"
-                print unicode(self.config)
-                print "debug----------- processing --------------<<<<"
+                print("debug>>>----------- config -------------------")
+                print(str(self.config))
+                print("debug----------- processing --------------<<<<")
 
             # run command
+            if not hasattr(args, '__func__'):
+                self.parser.error("You must provide a command. See --help.")
             return args.__func__(args)
         else:
             # pylint: disable-msg=W0621
             log = logging.getLogger('argtoolbox')
-            from argparse import ArgumentError
             try:
                 # run command
+                if not hasattr(args, '__func__'):
+                    self.parser.error("You must provide a command. See --help.")
                 return args.__func__(args)
             except ValueError as a:
                 log.error("ValueError : " + str(a))
@@ -1200,14 +1199,13 @@ class DefaultProgram(object):
         for attr in args.__dict__:
             data = getattr(args, attr)
             if isinstance(data, str):
-                data = data.decode(locale.getpreferredencoding())
                 setattr(args, attr, data)
 
             if isinstance(data, list):
                 res = []
                 for val in data:
                     if isinstance(val, str):
-                        res.append(val.decode(locale.getpreferredencoding()))
+                        res.append(val)
                     else:
                         res.append(val)
                 setattr(args, attr, res)
@@ -1369,16 +1367,16 @@ def _query_yes_no(question, default="yes"):
     else:
         raise ValueError("invalid default answer: '%s'" % default)
 
-    while 1:
+    while True:
         sys.stdout.write(question + prompt)
         try:
-            choice = raw_input().lower()
+            choice = input().lower()
         except KeyboardInterrupt:
-            print
+            print()
             return "no"
         if default is not None and choice == '':
             return default
-        elif choice in valid.keys():
+        elif choice in list(valid.keys()):
             return valid[choice]
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' "

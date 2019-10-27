@@ -94,12 +94,12 @@ class CustomInstallCommand(install):
             else:
                 self.install_etc()
         else:
-            print "\n/!\\ You need to register manually every script which \
-support argcomplete to enable bash completion.\n"
+            print("\n/!\\ You need to register manually every script which \
+support argcomplete to enable bash completion.\n")
 
     def install_virtual_env(self):
-        print "\nINFO: Registering argcomplete support in the current \
-virtualenv for auto activation."
+        print("\nINFO: Registering argcomplete support in the current \
+virtualenv for auto activation.")
         directory = os.getenv('VIRTUAL_ENV')
         cmd = "activate-global-python-argcomplete --dest "
         cmd += os.path.join(directory, 'bin')
@@ -111,17 +111,17 @@ virtualenv for auto activation."
         data += '\n'
         f.write(data)
         f.close()
-        print "INFO: You may need to launch a new install of bash for the auto \
-completion to be active.\n"
+        print("INFO: You may need to launch a new install of bash for the auto \
+completion to be active.\n")
 
     def install_etc(self):
-        print "\nINFO: Registering argcomplete support in /etc/ for global \
-activation."
+        print("\nINFO: Registering argcomplete support in /etc/ for global \
+activation.")
         cmd = "activate-global-python-argcomplete --global"
         status = run_command(cmd)
         if not  status:
-            print "WARN: Global activation for argcomplete failed !!!"
-            print "WARN: See 'argtoolboxtool register -h'.\n"
+            print("WARN: Global activation for argcomplete failed !!!")
+            print("WARN: See 'argtoolboxtool register -h'.\n")
 
 
 setup(
@@ -176,8 +176,6 @@ setup(
     # List run-time dependencies here.  These will be installed by pip when your
     # project is installed.
     install_requires = ['argparse',
-                        'argcomplete',
-                        'ConfigParser',
-                        'ordereddict'],
+                        'argcomplete'],
     scripts = glob.glob('bin/*'),
 )

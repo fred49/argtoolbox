@@ -24,7 +24,7 @@
 #  Frédéric MARTIN frederic.martin.fma@gmail.com
 #
 
-from __future__ import unicode_literals
+
 
 from argtoolbox import DefaultCommand
 from argtoolbox import BasicProgram
@@ -39,14 +39,14 @@ class TestCommand(DefaultCommand):
     def __call__(self, args):
         super(TestCommand, self).__call__(args)
         # Step 2
-        print ""
-        print "This is the beginning of the TestCommand class."
-        print "The command line arguments (argv) : "
-        print "------------------------------------"
-        print args
-        print ""
-        print "This is the end of the TestCommand class."
-        print ""
+        print("")
+        print("This is the beginning of the TestCommand class.")
+        print("The command line arguments (argv) : ")
+        print("------------------------------------")
+        print(args)
+        print("")
+        print("This is the end of the TestCommand class.")
+        print("")
 
 
 # Step 3
