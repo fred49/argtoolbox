@@ -76,7 +76,7 @@ def run_command(cmd, return_stdout=False):
         status = True
     #print stderr
     if return_stdout:
-        return (status, stdout.strip('\n'))
+        return (status, stdout.decode('utf8').strip('\n'))
     return status
 
 class CustomInstallCommand(install):
