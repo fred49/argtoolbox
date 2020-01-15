@@ -1,32 +1,28 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
-from __future__ import unicode_literals
-
 import sys
 import locale
-import codecs
 
 from argtoolbox import DefaultCommand
 from argtoolbox import BasicProgram
-# pylint: disable-msg=W0611
+# pylint: disable=unused-import
 from argtoolbox import SimpleSection
-# pylint: disable-msg=W0611
+# pylint: disable=unused-import
 from argtoolbox import Element
 
 # if you want to debug argcomplete completion,
 # you just need to export _ARC_DEBUG=True
 
-sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
-# -----------------------------------------------------------------------------
-# pylint: disable-msg=R0903
+
+# pylint: disable=too-few-public-methods
 class #{command_name_class}Command(DefaultCommand):
     """#{command_name_class} command"""
 
     def __call__(self, args):
         super(#{command_name_class}Command, self).__call__(args)
-        print "New generated command : #{command_name}"
+        print("New generated command : #{command_name}")
 
 
 class #{prog_name_class}Program(BasicProgram):
