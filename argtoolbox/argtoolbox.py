@@ -1071,13 +1071,13 @@ class DefaultCompleter(object):
 
     def __call__(self, prefix, **kwargs):
         from argcomplete import debug
+        from argcomplete import warn
         try:
             debug("\n------------ DefaultCompleter -----------------")
             debug("Kwargs content :")
             for i, j in list(kwargs.items()):
                 debug("key : " + str(i))
                 debug("\t - " + str(j))
-            debug("\n------------ DefaultCompleter -----------------\n")
 
             args = kwargs.get('parsed_args')
             # pylint: disable-msg=W0612
@@ -1087,9 +1087,15 @@ class DefaultCompleter(object):
             # getting form args the current Command and looking for a method
             # called by default 'complete'. See __init__ method. The method
             # name is store in the class member called self.func_name
-            fn = getattr(args.__func__, self.__name__, None)
+            debug("-------")
+            debug("__func__:" + str(args.__func__))
+            debug("func_name:" + str(self.func_name))
+            debug("\n------------ DefaultCompleter -----------------\n")
+            fn = getattr(args.__func__, self.func_name, None)
             if fn:
                 return fn(args, prefix)
+            warn("ERROR: Can not find completion function inside the __func__ object !")
+            return []
 
         # pylint: disable-msg=W0703
         except Exception as e:
