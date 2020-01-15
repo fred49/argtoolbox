@@ -1,15 +1,14 @@
 #!/usr/bin/env python
+"""Packaging script."""
 
-import glob
-from setuptools import setup, find_packages
-from setuptools.command.install import install
 import codecs
+import glob
 import os
 import re
 import shlex
-import platform
-from subprocess import call
 import subprocess
+from setuptools import setup, find_packages
+from setuptools.command.install import install
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -36,40 +35,10 @@ with codecs.open('README.rst', encoding='utf-8') as f:
     long_description = f.read()
 
 
-def is_debian_like():
-    """return True if the current distribution is running on debian like OS."""
-    if platform.system().lower() == 'linux':
-        if platform.linux_distribution()[0].lower() in ['ubuntu', 'debian']:
-            return True
-    return False
-
-def is_archlinux():
-    """return True if the current distribution is running on debian like OS."""
-    if platform.system().lower() == 'linux':
-        if platform.linux_distribution() == ('', '', ''):
-            # undefined distribution. Fixed in python 3.
-            if os.path.exists('/etc/arch-release'):
-                return True
-    return False
-
-def bash_version_greater_than_4_3():
-    if is_debian_like():
-        cmd = "/usr/bin/dpkg-query -W -f '${version}' bash"
-        status, version = run_command(cmd, True)
-        if status:
-            cmd = "dpkg --compare-versions %(version)s ge 4.3" % {
-                'version': version,
-            }
-            return run_command(cmd)
-    elif is_archlinux():
-        # TODO : support postinst for archlinux
-        pass
-    return False
-
 def run_command(cmd, return_stdout=False):
     dpkg_process = subprocess.Popen(shlex.split(cmd),
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
     stdout, stderr = dpkg_process.communicate()
     status = False
     if dpkg_process.wait() == 0:
@@ -82,41 +51,32 @@ def run_command(cmd, return_stdout=False):
 class CustomInstallCommand(install):
     """Customized setuptools install command - prints a friendly
     greeting."""
+
     def run(self):
         install.run(self)
-
-        # argcomplete completion is automatic if bash version is greater or
-        # equal than 4.3
-        if bash_version_greater_than_4_3():
-            # Detection of virtual env installation.
-            if os.getenv('VIRTUAL_ENV', False):
-                self.install_virtual_env()
-            else:
-                self.install_etc()
+        # Detection of virtual env installation.
+        if os.getenv('VIRTUAL_ENV', False):
+            self.install_virtual_env()
         else:
-            print("\n/!\\ You need to register manually every script which \
-support argcomplete to enable bash completion.\n")
+            self.install_etc()
 
     def install_virtual_env(self):
-        print("\nINFO: Registering argcomplete support in the current \
-virtualenv for auto activation.")
+        """Installation in a virtualenv."""
+        print("\nINFO: Registering argcomplete support in the current virtualenv for auto activation.")
         directory = os.getenv('VIRTUAL_ENV')
         cmd = "activate-global-python-argcomplete --dest "
         cmd += os.path.join(directory, 'bin')
-        call(shlex.split(cmd))
-
+        subprocess.call(shlex.split(cmd))
         f = open(os.path.join(directory, 'bin', 'activate'), 'a')
         data = "\nsource "
         data += os.path.join(directory, 'bin', 'python-argcomplete.sh')
         data += '\n'
         f.write(data)
         f.close()
-        print("INFO: You may need to launch a new install of bash for the auto \
-completion to be active.\n")
+        print("INFO: You may need to launch a new install of bash for the auto completion to be active.\n")
 
     def install_etc(self):
-        print("\nINFO: Registering argcomplete support in /etc/ for global \
-activation.")
+        print("\nINFO: Registering argcomplete support in /etc/ for global activation.")
         cmd = "activate-global-python-argcomplete --global"
         status = run_command(cmd)
         if not  status:
@@ -158,8 +118,7 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
     ],
 
     # What does your project relate to?
