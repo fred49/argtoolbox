@@ -46,15 +46,6 @@ from subprocess import call
 # if you want to debug argcomplete completion,
 # you just need to export _ARC_DEBUG=True
 
-# shlex.split does not support unicode in python 2.6
-def get_cmd(cmd):
-    major = sys.version_info[0]
-    minor = sys.version_info[1]
-    if major == 2:
-        if minor == 6:
-            cmd = cmd.encode('ascii','ignore')
-    return cmd
-
 class ConfigGenerationCommand(object):
     """This command read a existing program and generate the associated
     configuration file"""
@@ -209,7 +200,7 @@ class ListRegisteredCommand(DefaultCommand):
         DefaultCommand.__call__(self, args)
         bashrc = os.path.expanduser("~/.bashrc")
         cmd = "grep register-python-argcomplete " + bashrc
-        call(shlex.split(get_cmd(cmd)))
+        call(shlex.split(cmd))
 
 
 class GenerateCommand(DefaultCommand):
@@ -236,7 +227,7 @@ class GenerateCommand(DefaultCommand):
         cmd = "sed -i -e 's/#{description}/%(data)s/g' %(file)s" % {
             'data': description,
             'file': filename}
-        call(shlex.split(get_cmd(cmd)))
+        call(shlex.split(cmd))
 
     # pylint: disable=no-self-use
     def rename_command(self, command_name, filename):
@@ -244,23 +235,23 @@ class GenerateCommand(DefaultCommand):
         cmd = "sed -i -e 's/#{command_name}/%(data)s/g' %(file)s" % {
             'data': command_name,
             'file': filename}
-        call(shlex.split(get_cmd(cmd)))
+        call(shlex.split(cmd))
         cmd = "sed -i -e 's/#{command_name_class}/%(data)s/g' %(file)s" % {
             'data': command_name.title(),
             'file': filename}
-        call(shlex.split(get_cmd(cmd)))
+        call(shlex.split(cmd))
 
     def rename_prog(self, prog_name, filename):
         """Replace ${prog_name} variable in file content"""
         cmd = "sed -i -e 's/#{prog_name}/%(data)s/g' %(file)s" % {
             'data': prog_name,
             'file': filename}
-        call(shlex.split(get_cmd(cmd)))
+        call(shlex.split(cmd))
         prog_name.title()
         cmd = "sed -i -e 's/#{prog_name_class}/%(data)s/g' %(file)s" % {
             'data': prog_name.title(),
             'file': filename}
-        call(shlex.split(get_cmd(cmd)))
+        call(shlex.split(cmd))
 
     def copy(self, filename, force_yes):
         """Copy the default template to the new file name."""
