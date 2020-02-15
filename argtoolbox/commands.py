@@ -28,11 +28,13 @@
 
 
 import sys
+import stat
 import os
 import shutil
 import uuid
 import tempfile
 import importlib
+import inspect
 import logging
 import argparse
 from .argtoolbox import Config
@@ -168,8 +170,38 @@ class GenerateCommand(DefaultCommand):
     # pylint: disable=too-few-public-methods
 
     def __call__(self, args):
-        # TOOD rewite new command
-        pass
+        filename = args.prog_name.lower()
+        if filename[-3:] != ".py":
+            filename += ".py"
+        self.log.info("Trying to generate script: %s ...", filename)
+        prog_name = args.prog_name
+        if prog_name[-3:] == ".py":
+            prog_name = prog_name[:-3]
+        prog_name = prog_name.capitalize().replace('.', '')
+        command_name = args.command_name.lower().replace('.', '_')
+        path = os.path.dirname(inspect.getfile(Config))
+        src = os.path.join(path, 'templates', 'default.tml')
+        self.log.info("Loading template: %s", src)
+        template = ""
+        with open(src, 'r') as fde:
+            template = fde.read()
+        template = template.replace('#{prog_name}', prog_name)
+        template = template.replace('#{prog_name_class}', prog_name.title())
+        template = template.replace('#{command_name}', command_name)
+        template = template.replace('#{command_name_class}', command_name.title())
+        if args.description:
+            template = template.replace('#{description}', args.description)
+        if os.path.exists(filename):
+            if not args.force_yes:
+                self.log.error("Script %s already exists. Aborted. Try -f to force.", filename)
+                return False
+            self.log.warn("Overwriting script %s...", filename)
+        with open(filename, 'w') as fde:
+            template = fde.write(template)
+        filename_stat = os.stat(filename)
+        os.chmod(filename, filename_stat.st_mode | stat.S_IEXEC)
+        self.log.info("Generated script %s with one command '%s'", filename, command_name)
+        return True
 
 
 class MyProgram(BasicProgram):
