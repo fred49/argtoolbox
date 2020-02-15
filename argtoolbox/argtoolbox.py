@@ -149,7 +149,10 @@ class Config(object):
         self.sections = OrderedDict()
         self._default_section = self.add_section(SimpleSection("DEFAULT"))
         self.parser = None
-        self.file_parser = configparser.SafeConfigParser()
+        if sys.version_info[2] <= 2:
+            self.file_parser = configparser.SafeConfigParser()
+        else:
+            self.file_parser = configparser.ConfigParser()
 
     def add_section(self, section):
         """Add a new Section object to the config. Should be a subclass of
@@ -184,9 +187,14 @@ class Config(object):
             if isinstance(self.config_file, str):
                 discoveredFileList = self.file_parser.read(self.config_file)
             else:
-                discoveredFileList = self.file_parser.readfp(
-                    self.config_file,
-                    "file descriptor")
+                if sys.version_info[2] < 2:
+                    discoveredFileList = self.file_parser.readfp(
+                        self.config_file,
+                        "file descriptor")
+                else:
+                    discoveredFileList = self.file_parser.read_file(
+                        self.config_file,
+                        "file descriptor")
         else:
             defaultFileList = []
             defaultFileList.append(self.prog_name + ".cfg")
@@ -279,11 +287,14 @@ class Config(object):
             log = logging.getLogger('argtoolbox')
             log.debug("reloading configuration ...")
             if args.config_file:
-                self.file_parser = configparser.SafeConfigParser()
+                if sys.version_info[2] <= 2:
+                    self.file_parser = configparser.SafeConfigParser()
+                else:
+                    self.file_parser = configparser.ConfigParser()
                 discoveredFileList = self.file_parser.read(args.config_file)
-                log.debug("discoveredFileList: " + str(discoveredFileList))
+                log.debug("discoveredFileList: %s", discoveredFileList)
             for s in list(self.sections.values()):
-                log.debug("loading section : " + s.get_section_name())
+                log.debug("loading section : %s", s.get_section_name())
                 s.reset()
                 s.load(self.file_parser)
             log.debug("configuration reloaded.")
