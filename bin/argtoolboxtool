@@ -84,11 +84,11 @@ class ConfigGenerationCommand(object):
         program = dest
 
         local_dir = os.path.dirname(program)
-        glog.debug("local_dir : '" + str(local_dir) + "'")
+        glog.debug("local_dir : '%s'", local_dir)
         sys.path.append(local_dir)
 
         module_name = program.split('/')[-1].split('.')[0]
-        glog.debug("module name found : " + str(module_name))
+        glog.debug("module name found : %s", module_name)
 
         level = logging.getLogger().getEffectiveLevel()
         module = importlib.import_module(module_name)
@@ -98,18 +98,18 @@ class ConfigGenerationCommand(object):
         for i in dir(module):
             temp_class = getattr(module, i)
             if isinstance(temp_class, argtoolbox.Config):
-                glog.debug("variable name found : " + str(i))
-                glog.debug("variable type found : " + str(type(temp_class)))
+                glog.debug("variable name found : %s", i)
+                glog.debug("variable type found : %s", type(temp_class))
                 result = temp_class
                 break
             elif isinstance(temp_class, argtoolbox.DefaultProgram):
-                glog.debug("variable name found : " + str(i))
-                glog.debug("variable type found : " + str(type(temp_class)))
+                glog.debug("variable name found : %s", i)
+                glog.debug("variable type found : %s", type(temp_class))
                 result = temp_class.config
                 break
             elif isinstance(temp_class, argtoolbox.BasicProgram):
-                glog.debug("variable name found : " + str(i))
-                glog.debug("variable type found : " + str(type(temp_class)))
+                glog.debug("variable name found : %s", i)
+                glog.debug("variable type found : %s", type(temp_class))
                 temp_class.add_config_options()
                 result = temp_class.config
                 break
@@ -132,17 +132,17 @@ class ConfigGenerationCommand(object):
                 "The current program does not support a configuration file.")
             return True
         configfile = os.path.expanduser('~/.' + config.prog_name + '.cfg')
-        glog.info("The default configuration file name is : " + configfile)
+        glog.info("The default configuration file name is : %s", configfile)
         if args.output:
             configfile = args.output
             if configfile[-4:] != ".cfg":
                 configfile += ".cfg"
-            glog.warn("Using '" + configfile + "' as configuration file name.")
+            glog.warn("Using '%s' as configuration file name.", configfile)
 
         if not args.force_yes:
             if os.path.exists(configfile):
                 glog.warn(
-                    "The current file already exists : " + str(configfile))
+                    "The current file already exists : %s", configfile)
                 if not argtoolbox.query_yes_no("Overwrite ?", "no"):
                     glog.error("Aborted.")
                     return False
