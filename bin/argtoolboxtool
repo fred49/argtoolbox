@@ -1,4 +1,4 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
@@ -102,7 +102,7 @@ class ConfigGenerationCommand(object):
         level = logging.getLogger().getEffectiveLevel()
         module = importlib.import_module(module_name)
         glog.setLevel(level)
-
+        glog.debug("module loaded : %s", module)
         result = None
         for i in dir(module):
             temp_class = getattr(module, i)
@@ -122,14 +122,15 @@ class ConfigGenerationCommand(object):
                 temp_class.add_config_options()
                 result = temp_class.config
                 break
-        if result:
-            glog.info("Config object found : " + result.prog_name)
         os.remove(program)
         program += "c"
         if os.path.exists(program):
             os.remove(program)
-
-        return result
+        if result:
+            glog.info("Config object found : %s", result.prog_name)
+            return result
+        glog.error("Can 't find config object.")
+        raise ValueError("This script does not contain or support argtoolbox")
 
     # pylint: disable=no-self-use
     def generate(self, args, config):
