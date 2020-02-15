@@ -23,6 +23,8 @@ class #{command_name_class}Command(DefaultCommand):
     def __call__(self, args):
         super(#{command_name_class}Command, self).__call__(args)
         print("New generated command : #{command_name}")
+        # return True if command exits with success.
+        return True
 
 
 class #{prog_name_class}Program(BasicProgram):
