@@ -29,6 +29,7 @@
 
 import unittest
 import io
+import binascii
 import sys
 import logging
 from argtoolbox import Config, Element, Base64ElementHook
@@ -161,21 +162,20 @@ elt_list_value=test aa aarrr kkkk mmmmm
         self.s.add_element(Element(
             'elt_type_base64', hooks=[Base64ElementHook(), ]))
         self.c.load()
-        self.assertEqual("secret", self.c.default.elt_type_base64.value)
+        self.assertEqual("secret", self.c.default.elt_type_base64.value.decode('utf8'))
 
     def test_hook_not_base64(self):
         # pylint: disable-msg=C0301
         """Testing if the Base64ElementHook will rise an exception for non base64 option"""
         self.s.add_element(Element(
             'elt_type_not_base64', hooks=[Base64ElementHook(), ]))
-        self.assertRaises(TypeError, self.c.load)
+        self.assertRaises(binascii.Error, self.c.load)
 
     def test_hook_not_base64_2(self):
         """Testing if the Base64ElementHook will decode base64 option"""
         self.s.add_element(Element(
             'elt_type_not_base64', hooks=[Base64ElementHook(True), ]))
-        self.c.load()
-        self.assertEqual("cVjcmV0", self.c.default.elt_type_not_base64.value)
+        self.assertRaises(binascii.Error, self.c.load)
 
     def test_hidden(self):
         """Testing a hidden option"""
