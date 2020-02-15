@@ -2,7 +2,6 @@
 """Packaging script."""
 
 import codecs
-import glob
 import os
 import re
 import shlex
@@ -131,10 +130,12 @@ setup(
     package_data = {
         'argtoolbox': ['templates/*.tml'],
     },
+    entry_points={
+        'console_scripts': ['argtoolboxtool=argtoolbox.commands:PROG'],
+    },
 
     # List run-time dependencies here.  These will be installed by pip when your
     # project is installed.
     install_requires = ['argparse',
                         'argcomplete'],
-    scripts = glob.glob('bin/*'),
 )
