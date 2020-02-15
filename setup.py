@@ -143,4 +143,5 @@ setup(
         'argparse',
         'argcomplete'
     ],
+    test_suite='tests.get_all_tests',
 )
