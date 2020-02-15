@@ -37,7 +37,6 @@ import configparser
 import argparse
 from argparse import ArgumentError
 
-# -----------------------------------------------------------------------------
 # global logger variable
 #log = logging.getLogger('argtoolbox')
 #log.setLevel(logging.INFO)
@@ -61,7 +60,6 @@ streamHandler.setFormatter(DEFAULT_LOGGING_FORMAT)
 #streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
 
-# -----------------------------------------------------------------------------
 class DefaultHook(object):
     """
     This class does nothing. This is the default class for creating your own
@@ -76,7 +74,6 @@ class DefaultHook(object):
         pass
 
 
-# -----------------------------------------------------------------------------
 class Base64ElementHook(DefaultHook):
     """This hook is used as a post reading processing in order to convert
     base64 data stored into the config file into plain text data."""
@@ -104,7 +101,6 @@ configuration file with base64 encoding", {"name":
                     raise ex
 
 
-# -----------------------------------------------------------------------------
 class SectionHook(object):
     """
     The SectionHook class is used during the configuration reloading
@@ -137,7 +133,6 @@ class SectionHook(object):
             setattr(self.section, self.attribute, value)
 
 
-# -----------------------------------------------------------------------------
 class Config(object):
     # pylint: disable-msg=R0902
     """This is the entry point, this class will contains all Section and
@@ -335,7 +330,6 @@ class Config(object):
             log.debug("config file generation completed : " + str(output))
 
 
-# -----------------------------------------------------------------------------
 class _AbstractSection(object):
     """This class is the parent class of all Section classes. You can not use
     it, you must implement abstract methods.
@@ -403,7 +397,6 @@ class _AbstractSection(object):
             f.write("\n")
 
 
-# -----------------------------------------------------------------------------
 class _Section(_AbstractSection):
     """Simple abstract section object, container for Elements"""
     def __init__(self, *args, **kwargs):
@@ -472,7 +465,6 @@ class _Section(_AbstractSection):
         f.write("\n")
 
 
-# -----------------------------------------------------------------------------
 class SimpleSection(_Section):
     """A simple section object. This class is used to declare a section that
     should be into the configuration file.
@@ -495,7 +487,6 @@ class SimpleSection(_Section):
         return res
 
 
-# -----------------------------------------------------------------------------
 class SubSection(_Section):
     """ TODO """
 
@@ -524,7 +515,6 @@ class SubSection(_Section):
         return newone
 
 
-# -----------------------------------------------------------------------------
 class ListSection(_AbstractSection):
     """ TODO """
     def __init__(self, name, *args, **kwargs):
@@ -566,7 +556,6 @@ class ListSection(_AbstractSection):
         return res
 
 
-# -----------------------------------------------------------------------------
 # warning| [R0902, Element] Too many instance attributes (13/7)
 # pylint: disable-msg=R0902
 class Element(object):
@@ -852,7 +841,6 @@ config file." % {"name": self._name}
         f.write("\n")
 
 
-# -----------------------------------------------------------------------------
 class ElementWithSubSections(Element):
     """ This class extends the default class Element. It offers you the power
     to add sections (SubSection) inside a element.
@@ -906,7 +894,6 @@ class ElementWithSubSections(Element):
         self.post_load()
 
 
-# -----------------------------------------------------------------------------
 class ElementWithRelativeSubSection(ElementWithSubSections):
 
     """ This class extends the default class Element. It offers you the power
@@ -1002,7 +989,6 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
         return res
 
 
-# -----------------------------------------------------------------------------
 class DefaultCommand(object):
     """This class do nothing, this is just the default structure to implement
     your own class. Use this class as the base for every the command line
@@ -1038,7 +1024,6 @@ class DefaultCommand(object):
         return []
 
 
-# -----------------------------------------------------------------------------
 class TestCommand(DefaultCommand):
     """Just a simple command, using the default command class."""
 
@@ -1062,7 +1047,6 @@ class TestCommand(DefaultCommand):
         print("")
 
 
-# -----------------------------------------------------------------------------
 class DefaultCompleter(object):
     """ TODO
     """
@@ -1107,7 +1091,6 @@ class DefaultCompleter(object):
             return ["comlete-error"]
 
 
-# -----------------------------------------------------------------------------
 class DefaultProgram(object):
     """ TODO """
 
@@ -1218,7 +1201,6 @@ class DefaultProgram(object):
         return args
 
 
-# -----------------------------------------------------------------------------
 class BasicProgram(object):
     """ TODO """
 
@@ -1341,7 +1323,6 @@ class BasicProgram(object):
             sys.exit(1)
 
 
-# -----------------------------------------------------------------------------
 def query_yes_no(question, default="yes"):
     """Just prompt the user for a yes/no question"""
     res = _query_yes_no(question, default)
@@ -1351,7 +1332,6 @@ def query_yes_no(question, default="yes"):
         return False
 
 
-# -----------------------------------------------------------------------------
 def _query_yes_no(question, default="yes"):
     """Ask a yes/no question via raw_input() and return their answer.
 
