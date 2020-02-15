@@ -258,6 +258,82 @@ class MyProgram(BasicProgram):
         parser_tmp.set_defaults(__func__=ConfigGenerationCommand())
 
 
+class ConfigGenerationV2Command(object):
+    """TODO"""
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, prog):
+        self.prog = prog
+        self.log = logging.getLogger()
+
+    def __call__(self, args):
+        if args.debug:
+            self.log.setLevel(logging.DEBUG)
+        self.log.debug("args: %s", args)
+        self.log.debug("config: %s", type(self.prog))
+        self.prog.add_config_options()
+        return self.generate(args, self.prog.config)
+
+    def generate(self, args, config):
+        """Generate the default configuration file from the config object"""
+        self.log.info("Trying to generate the default configuration file ...")
+        if not config.use_config_file:
+            self.log.info(
+                "The current program does not support a configuration file.")
+            return True
+        configfile = os.path.expanduser('~/.' + config.prog_name + '.cfg')
+        self.log.info("The default configuration file name is : %s", configfile)
+        if args.output:
+            configfile = args.output
+            if configfile[-4:] != ".cfg":
+                configfile += ".cfg"
+            self.log.warn("Using '%s' as configuration file name.", configfile)
+
+        if not args.force_yes:
+            if os.path.exists(configfile):
+                self.log.warn(
+                    "The current file already exists : %s", configfile)
+                if not query_yes_no("Overwrite ?", "no"):
+                    self.log.error("Aborted.")
+                    return False
+        config.write_default_config_file(configfile, args.nocomments)
+        self.log.info("Done.")
+        return True
+
+
+def cli_generate_config(prog_name, config, description=None, command_name="generate",
+                        command_class=ConfigGenerationV2Command):
+    """TODO"""
+    parser = argparse.ArgumentParser(
+        prog=prog_name,
+        description=description,
+        add_help=False)
+    subparsers = parser.add_subparsers()
+    parser_tmp = subparsers.add_parser(
+        command_name,
+        help="Generate the default configuration file for he current program")
+    parser_tmp.add_argument('-o', '--output', action="store")
+    parser_tmp.add_argument(
+        '-n',
+        dest="nocomments",
+        action="store_false",
+        help="config file generation without commments.")
+    parser_tmp.add_argument(
+        '-d',
+        dest="debug",
+        action="store_true")
+    parser_tmp.add_argument(
+        '-f',
+        dest="force_yes",
+        action="store_true",
+        help="overwrite the current output file even it still exists.")
+    parser_tmp.set_defaults(__func__=command_class(config))
+    args = parser.parse_args()
+    if not hasattr(args, '__func__'):
+        parser.error("You must provide a command. See --help.")
+    return args.__func__(args)
+
+
 PROG = MyProgram(
     "argtoolbox_utils",
     use_config_file=False,
