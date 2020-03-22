@@ -32,6 +32,7 @@ import sys
 import logging
 import base64
 import copy
+import binascii
 from collections import OrderedDict
 import configparser
 import argparse
@@ -86,7 +87,7 @@ class Base64ElementHook(DefaultHook):
             try:
                 data = base64.b64decode(elt.value)
                 elt.value = data
-            except TypeError as ex:
+            except binascii.Error as ex:
                 # pylint: disable-msg=W0621
                 log = logging.getLogger('argtoolbox')
                 if self.warning:
