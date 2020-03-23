@@ -53,7 +53,7 @@ elt_type_float = 1.00009
 elt_required=
 elt_no_value=
 elt_type_base64=c2VjcmV0
-elt_type_not_base64=cVjcmV0
+elt_type_not_base64=cVjcmVé
 elt_hidden="do not show"
 elt_list_value=test aa aarrr kkkk mmmmm
 
@@ -169,13 +169,15 @@ elt_list_value=test aa aarrr kkkk mmmmm
         """Testing if the Base64ElementHook will rise an exception for non base64 option"""
         self.s.add_element(Element(
             'elt_type_not_base64', hooks=[Base64ElementHook(), ]))
-        self.assertRaises(binascii.Error, self.c.load)
+        self.assertRaises(TypeError, self.c.load)
 
     def test_hook_not_base64_2(self):
         """Testing if the Base64ElementHook will decode base64 option"""
         self.s.add_element(Element(
             'elt_type_not_base64', hooks=[Base64ElementHook(True), ]))
-        self.assertRaises(binascii.Error, self.c.load)
+        # self.assertRaises(TypeError, self.c.load)
+        self.c.load()
+        self.assertEqual("cVjcmVé", self.c.default.elt_type_not_base64.value)
 
     def test_hidden(self):
         """Testing a hidden option"""

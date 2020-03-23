@@ -88,18 +88,23 @@ class Base64ElementHook(DefaultHook):
                 data = base64.b64decode(elt.value)
                 elt.value = data
             except binascii.Error as ex:
-                # pylint: disable-msg=W0621
-                log = logging.getLogger('argtoolbox')
-                if self.warning:
-                    log.warn("current field '%(name)s' is not \
-stored in the configuration file with \
-base64 encoding",
-                             {"name": getattr(elt, "_name")})
-                else:
-                    log.error("current field '%(name)s' is not stored in the \
-configuration file with base64 encoding", {"name":
-                              getattr(elt, "_name")})
-                    raise ex
+                self.handle_exception(ex, elt)
+            except ValueError as ex:
+                self.handle_exception(ex, elt)
+
+    def handle_exception(self, ex, elt):
+        """TODO"""
+        log = logging.getLogger('argtoolbox')
+        log.debug(ex)
+        if self.warning:
+            log.warning(("Current field '%(name)s' is not "
+                         "stored in the configuration file with base64 encoding"),
+                        {"name": getattr(elt, "_name")})
+        else:
+            log.error(("Current field '%(name)s' is not stored in the "
+                       "configuration file with base64 encoding"),
+                      {"name": getattr(elt, "_name")})
+            raise TypeError(str(ex))
 
 
 class SectionHook(object):
