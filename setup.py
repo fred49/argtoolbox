@@ -141,7 +141,7 @@ setup(
     # project is installed.
     install_requires=[
         'argparse',
-        'argcomplete'
+        'argcomplete==1.9.2'
     ],
     test_suite='tests.get_all_tests',
 )
