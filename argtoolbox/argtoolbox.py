@@ -595,7 +595,7 @@ class Element(object):
 
     # pylint: disable-msg=R0913
     def __init__(self, name, e_type=str, required=False, default=None,
-                 conf_hidden=False, conf_required=False, desc=None,
+                 conf_hidden=False, conf_required=False, desc=None, dest=None,
                  hooks=None, hidden=False, e_type_exclude=False):
         """Information about how to declare a element which will be load from a
         configuration file.
@@ -623,6 +623,9 @@ class Element(object):
 
     - desc -- Description used into the configuration file and argparse.
 
+    - desc -- name of the argparse variable name in Namespace.
+        Default: name
+
     - conf_hidden -- The current attribute will not be used during
     configuration file generation.
 
@@ -641,6 +644,7 @@ class Element(object):
         self._required = required
         self.default = default
         self._desc = desc
+        self._dest = dest
         self.conf_hidden = conf_hidden
         self.conf_required = conf_required
         self._desc_for_config = None
@@ -823,6 +827,8 @@ config file." % {"name": self._name}
             else:
                 ret["required"] = True
         ret["dest"] = self._name
+        if self._dest:
+            ret["dest"] = self._dest
         if not self.e_type_exclude:
             if self.e_type == int or self.e_type == float:
                 # Just override argparse.add_argument 'type' parameter for int or float.
