@@ -425,7 +425,7 @@ class _Section(_AbstractSection):
         will be used as an identifier."""
         if not isinstance(elt, Element):
             raise TypeError("argument should be a subclass of Element")
-        self.elements[elt.get_name()] = elt
+        self.elements[elt.name] = elt
         return elt
 
     def add_element_list(self, elt_list, **kwargs):
@@ -667,6 +667,11 @@ class Element(object):
         """TODO"""
         self._value = value
 
+    @property
+    def name(self):
+        """This method will return the name of the current element"""
+        return self._name
+
     def get_name(self):
         """This method will return the name of the current element"""
         return self._name
@@ -676,23 +681,16 @@ class Element(object):
         representation of the current object. Every lines could be
         prefixed and suffixed.
         """
-        res = []
+        value = self.value
         if self.hidden:
-            res.append(prefix + " - " + str(self._name)
-                       + " : xxxxxxxx" + suffix)
-        else:
-            default = self.default
-            if default is None:
-                default = " - "
-            a = prefix + " - "
-            a += str(self._name) + " : "
-            if isinstance(default, str):
-                a += default
-            else:
-                a += str(default)
-            a += suffix
-            res.append(a)
-        return res
+            value = "xxxxxxxx"
+        line = "{prefix} - {name} : {value}{suffix}".format(
+            prefix=prefix,
+            name=self._name,
+            value=value,
+            suffix=suffix
+        )
+        return line
 
     def __str__(self):
         return "".join(self.get_representation())
@@ -987,22 +985,16 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
         self.post_load()
 
     def get_representation(self, prefix="", suffix="\n"):
-        res = ['\n']
-        res.append('#')
+        res = ['']
         temp_line = prefix + " - " + str(self._name) + " : "
         if self.hidden:
             temp_line += "xxxxxxxx" + suffix
         else:
             temp_line += str(self.value) + suffix
         res.append(temp_line)
-
-        res.append("".join(self.rss.get_representation(prefix + "#\t")))
-        res.append('\n')
         if len(self.sections) > 0:
             for elt in list(self.sections.values()):
-                res.append('\n')
                 res.append("".join(elt.get_representation(prefix + "\t")))
-            res.append('\n')
         return res
 
 
