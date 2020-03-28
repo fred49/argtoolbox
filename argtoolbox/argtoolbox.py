@@ -360,6 +360,15 @@ class _AbstractSection(object):
         self._suffix = suffix
         self._required = required
 
+    @property
+    def name(self):
+        """This method will return the name of the current element"""
+        return self._name
+    @name.setter
+    def name(self, name):
+        """TODO"""
+        self._name = name
+
     def get_key_name(self):
         """This method return the name of the section, it Should be unique
         because it is used as a key or identifier."""
@@ -864,19 +873,41 @@ class ElementWithSubSections(Element):
     Section :
         Element1 : name = port, value = 389
         Element2 : name = address, value = 127.0.0.1
-        ElementWithSubSections
+        Element3 (ElementWithSubSections): name = nested_section_name, value = nested1
             SubSection
-                Element1
-                Element2
+                Element4 : name = proto, value = tcp
+                Element5 : name = version, value = 3
+    ---
+    [DEFAULT]
+    port=369
+    address=127.0.0.1
+    nested_section_name=nested1
+
+    [nested1]
+    proto=tcp
+    version=3
+    ---
+    default = self.config.get_default_section()
+    section = SubSection()
+    section.add_element(Element('trigger', conf_required=True))
+    section.add_element(Element('hook', conf_required=True))
+    default.add_element(ElementWithSubSections('group_cfg', section))
     """
 
-    def __init__(self, *args, **kwargs):
-        super(ElementWithSubSections, self).__init__(*args, **kwargs)
+    def __init__(self, name, subsection, *args, **kwargs):
+        super(ElementWithSubSections, self).__init__(name, *args, **kwargs)
         self.e_type = str
+        # FIXME: why using a list if we have only one section ?
         self.sections = OrderedDict()
+        self.add_section(subsection)
+
+    @property
+    def section(self):
+        """This method will return the name of the current element"""
+        return self.sections[self._name]
 
     def get_representation(self, prefix="", suffix="\n"):
-        res = ['\n']
+        res = []
         temp_line = prefix + " - " + str(self._name) + " : "
         if self.hidden:
             temp_line += "xxxxxxxx" + suffix
@@ -890,14 +921,16 @@ class ElementWithSubSections(Element):
         return res
 
     def add_section(self, section):
-        """You can add section inside a Element, the section must be a
+        """You can add a section inside a Element, the section must be a
         subclass of SubSection. You can use this class to represent a tree.
+        Be careful, you can't add more than one section.
         """
 
         if not issubclass(section.__class__, SubSection):
             raise TypeError("Argument should be a subclass of SubSection, \
                              not :" + str(section.__class__))
-        self.sections[section.name] = section
+        # we always use the element name as the unique section name.
+        self.sections[self.name] = section
         return section
 
     def load(self, file_parser, section_name):
@@ -909,7 +942,7 @@ class ElementWithSubSections(Element):
         self.post_load()
 
 
-class ElementWithRelativeSubSection(ElementWithSubSections):
+class ElementWithRelativeSubSection(Element):
 
     """ This class extends the default class Element. It offers you the power
     to add sections (SubSection) inside a element.
@@ -944,21 +977,47 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
             SubSection : sec_test1
                 - Element4
                 - Element5
-                - Element5
+                - Element6
             SubSection : sec_test2
                 - Element4
                 - Element5
-                - Element5
+                - Element6
             SubSection : sec_test3
                 - Element4
                 - Element5
-                - Element5
+                - Element6
+    ---
+    [DEFAULT]
+    port=369
+    address=127.0.0.1
+    list_of_section_name=sec_test1 sec_test2 sec_test3
 
+    [sec_test1]
+    elt4_field=tcp
+    elt5_field=3
+    elt6_field=aaaa
+
+    [sec_test2]
+    elt4_field=tcp
+    elt5_field=3
+    elt6_field=aaaa
+
+    [sec_test3]
+    elt4_field=tcp
+    elt5_field=3
+    elt6_field=aaaa
+    ---
+    section = SubSection()
+    section.add_element(Element('elt4_field', conf_required=True))
+    section.add_element(Element('elt5_field', conf_required=True))
+    section.add_element(Element('elt6_field', conf_required=True))
+    default.add_element(ElementWithRelativeSubSection('list_of_section_name', section))
     """
 
-    def __init__(self, name, rss, **kwargs):
-        super(ElementWithRelativeSubSection, self).__init__(name, **kwargs)
+    def __init__(self, name, rss, *args, **kwargs):
+        super(ElementWithRelativeSubSection, self).__init__(name, *args, **kwargs)
         self.e_type = list
+        self.sections = OrderedDict()
         if not issubclass(rss.__class__, SubSection):
             raise TypeError("Argument should be a subclass of SubSection, \
                             not :" + str(_Section.__class__))
@@ -985,7 +1044,7 @@ class ElementWithRelativeSubSection(ElementWithSubSections):
         self.post_load()
 
     def get_representation(self, prefix="", suffix="\n"):
-        res = ['']
+        res = []
         temp_line = prefix + " - " + str(self._name) + " : "
         if self.hidden:
             temp_line += "xxxxxxxx" + suffix
