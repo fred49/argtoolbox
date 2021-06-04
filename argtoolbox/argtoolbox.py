@@ -1075,6 +1075,9 @@ class DefaultCommand(object):
         self.protected_args = ['password']
 
     def __call__(self, args):
+        self._log_namespace(args)
+
+    def _log_namespace(self, args):
         dict_tmp = copy.copy(args)
         #delattr(dict_tmp, "__func__")
         for field in getattr(self, 'protected_args', []):
@@ -1083,14 +1086,11 @@ class DefaultCommand(object):
         self.log.debug("Namespace : begin :")
         for i in dict_tmp.__dict__:
             attribute = getattr(dict_tmp, i)
-            if isinstance(attribute, str):
-                self.log.debug(i + " : " + attribute + " : <type 'unicode'>")
-            else:
-                self.log.debug(i + " : " + str(attribute) + " : " + str(type(attribute)))
+            self.log.debug("%s : %s : %s", i, attribute, type(attribute))
         self.log.debug("Namespace : end.")
 
-    # pylint: disable-msg=W0613
-    # pylint: disable-msg=R0201
+    # pylint: disable=unused-argument
+    # pylint: disable=no-self-use
     def complete(self, args, prefix):
         """Auto complete method, args is comming from argparse and prefix is
         the input data from command line.
