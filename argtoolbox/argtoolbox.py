@@ -61,7 +61,7 @@ streamHandler.setFormatter(DEFAULT_LOGGING_FORMAT)
 #streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
 
-class DefaultHook(object):
+class DefaultHook:
     """
     This class does nothing. This is the default class for creating your own
     hook. After reading an option from the config file, you can apply a
@@ -107,7 +107,7 @@ class Base64ElementHook(DefaultHook):
             raise TypeError(str(ex))
 
 
-class SectionHook(object):
+class SectionHook:
     """
     The SectionHook class is used during the configuration reloading
     process. After the parsing of CLI arguments, all section hooks are
@@ -139,7 +139,7 @@ class SectionHook(object):
             setattr(self.section, self.attribute, value)
 
 
-class Config(object):
+class Config:
     # pylint: disable-msg=R0902
     """This is the entry point, this class will contains all Section and
      Elements."""
@@ -347,7 +347,7 @@ class Config(object):
             log.debug("config file generation completed : " + str(output))
 
 
-class _AbstractSection(object):
+class _AbstractSection:
     """This class is the parent class of all Section classes. You can not use
     it, you must implement abstract methods.
     """
@@ -584,7 +584,7 @@ class ListSection(_AbstractSection):
 
 # warning| [R0902, Element] Too many instance attributes (13/7)
 # pylint: disable-msg=R0902
-class Element(object):
+class Element:
     """
     An Element could represent a option into the configuration file, this
     class lets you configure many requirements like default value, data
@@ -1063,7 +1063,7 @@ class ElementWithRelativeSubSection(Element):
         return res
 
 
-class DefaultCommand(object):
+class DefaultCommand:
     """This class do nothing, this is just the default structure to implement
     your own class. Use this class as the base for every the command line
     action you want to create."""
@@ -1121,7 +1121,7 @@ class TestCommand(DefaultCommand):
         print("")
 
 
-class DefaultCompleter(object):
+class DefaultCompleter:
     """ TODO
     """
     def __init__(self, func_name="complete"):
@@ -1165,7 +1165,7 @@ class DefaultCompleter(object):
             return ["comlete-error"]
 
 
-class DefaultProgram(object):
+class DefaultProgram:
     """ TODO """
 
     def __init__(self, parser, config=None, force_debug=False):
@@ -1275,7 +1275,7 @@ class DefaultProgram(object):
         return args
 
 
-class BasicProgram(object):
+class BasicProgram:
     """ TODO """
 
     def __init__(self, name, config_file=None, desc=None,
