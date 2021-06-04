@@ -1084,7 +1084,7 @@ class DefaultCommand:
             if hasattr(dict_tmp, field):
                 setattr(dict_tmp, field, "xxxxxxxx")
         self.log.debug("Namespace : begin :")
-        for i in dict_tmp.__dict__:
+        for i in sorted(dict_tmp.__dict__):
             attribute = getattr(dict_tmp, i)
             self.log.debug("%s : %s : %s", i, attribute, type(attribute))
         self.log.debug("Namespace : end.")
