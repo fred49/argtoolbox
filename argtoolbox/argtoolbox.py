@@ -26,7 +26,6 @@
 #
 
 
-
 import os
 import sys
 import logging
@@ -39,9 +38,9 @@ import argparse
 from argparse import ArgumentError
 
 # global logger variable
-#log = logging.getLogger('argtoolbox')
-#log.setLevel(logging.INFO)
-#log.setLevel(logging.DEBUG)
+# log = logging.getLogger('argtoolbox')
+# log.setLevel(logging.INFO)
+# log.setLevel(logging.DEBUG)
 # logger formats
 DEFAULT_LOGGING_FORMAT = logging.Formatter(
     "%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
@@ -55,9 +54,9 @@ streamHandler.setFormatter(DEFAULT_LOGGING_FORMAT)
 # debug mode
 # if you need debug during class construction, file config loading, ...,
 # you need to modify the logger level here.
-#log.addHandler(streamHandler)
-#log.setLevel(logging.DEBUG)
-#streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
+# log.addHandler(streamHandler)
+# log.setLevel(logging.DEBUG)
+# streamHandler.setFormatter(DEBUG_LOGGING_FORMAT)
 
 
 class DefaultHook:
@@ -257,7 +256,7 @@ class Config:
         4. reloading configuration using cli argument like a configuration
         file name.
         """
-        #from argcomplete import debug
+        # from argcomplete import debug
         # Parsing the command line looking for the previous options like
         # configuration file name or server section. Extra arguments
         # will be store into argv.
@@ -363,6 +362,7 @@ class _AbstractSection:
     def name(self):
         """This method will return the name of the current element"""
         return self._name
+
     @name.setter
     def name(self, name):
         """TODO"""
@@ -710,7 +710,7 @@ class Element:
     def __copy__(self):
         newone = type(self)(self._name)
         newone.__dict__.update(self.__dict__)
-        #self.elements = OrderedDict()
+        # self.elements = OrderedDict()
         return newone
 
     def post_load(self):
@@ -773,7 +773,7 @@ list." % {"name": self._name}
 
             except ValueError as ex:
                 msg = "The current field '%(name)s' was present, but the \
-required type is : %(e_type)s." %  {
+required type is : %(e_type)s." % {
                 "name": self._name,
                 "e_type": self.e_type
                 }
@@ -1078,7 +1078,7 @@ class DefaultCommand:
 
     def _log_namespace(self, args):
         dict_tmp = copy.copy(args)
-        #delattr(dict_tmp, "__func__")
+        # delattr(dict_tmp, "__func__")
         for field in getattr(self, 'protected_args', []):
             if hasattr(dict_tmp, field):
                 setattr(dict_tmp, field, "xxxxxxxx")
@@ -1138,8 +1138,8 @@ class DefaultCompleter:
 
             args = kwargs.get('parsed_args')
             # pylint: disable-msg=W0612
-            parser = kwargs.get('parser')
-            #a = parser.parse_known_args()
+            # parser = kwargs.get('parser')
+            # a = parser.parse_known_args()
 
             # getting form args the current Command and looking for a method
             # called by default 'complete'. See __init__ method. The method
@@ -1243,18 +1243,18 @@ class DefaultProgram:
             try:
                 # run command
                 if not hasattr(args, '__func__'):
-                    self.parser.error("You must provide a command. See --help.")
+                    self.parser.error(
+                            "You must provide a command. See --help.")
                 return args.__func__(args)
             except ValueError as a:
                 log.error("ValueError : " + str(a))
-            except KeyboardInterrupt as a:
+            except KeyboardInterrupt:
                 log.warn("Keyboard interruption detected.")
             except ArgumentError as a:
                 self.parser.error(a.message)
             except Exception as a:
                 log.error("unexcepted error : " + str(a))
             return False
-
 
     def parse_args(self):
         args = self.parser.parse_args()
