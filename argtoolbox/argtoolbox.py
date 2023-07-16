@@ -46,8 +46,7 @@ from argparse import ArgumentError
 DEFAULT_LOGGING_FORMAT = logging.Formatter(
     "%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
 DEBUG_LOGGING_FORMAT = logging.Formatter(
-    "%(asctime)s %(levelname)-8s %(module)s:%(name)s:%(funcName)s:%(lineno)d:%(message)s",
-    "%H:%M:%S")
+    "%(asctime)s %(levelname)-8s %(module)s:%(name)s:%(funcName)s:%(lineno)d:%(message)s")
 # logger handlers
 # pylint: disable-msg=C0103
 streamHandler = logging.StreamHandler(sys.stdout)
