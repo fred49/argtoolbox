@@ -51,3 +51,79 @@ run = "rm -rf dist/ build/ *.egg-info .pytest_cache .ruff_cache .mypy_cache .cov
 [tasks.build]
 description = "Build distribution packages"
 run = "uv build"
+
+[tasks.show-version]
+description = "Show current version"
+run = "grep '^version = ' pyproject.toml | cut -d'\"' -f2"
+
+[tasks.bump-version]
+description = "Bump version number (usage: mise run bump-version -- 1.2.0)"
+run = '''
+#!/usr/bin/env bash
+VERSION="$1"
+if [ -z "$VERSION" ]; then
+  echo "Usage: mise run bump-version -- <version>"
+  echo "Example: mise run bump-version -- 1.2.0"
+  exit 1
+fi
+echo "Updating version to $VERSION..."
+sed -i 's/^version = ".*"/version = "'$VERSION'"/' pyproject.toml
+echo "✓ Updated pyproject.toml"
+echo ""
+echo "Version bumped to $VERSION"
+echo "Next steps:"
+echo "  1. Review changes: git diff"
+echo "  2. Run checks: mise run release-check"
+echo "  3. Commit: git commit -am 'chore: bump version to $VERSION'"
+echo "  4. Tag: git tag v$VERSION"
+echo "  5. Build: mise run build"
+'''
+
+[tasks.release-check]
+description = "Run all pre-release checks"
+run = [
+  "echo '=== Running tests ==='",
+  "uv run python tests/tests.py",
+  "echo ''",
+  "echo '=== Running linter ==='",
+  "uv run ruff check src/ tests/ samples/",
+  "echo ''",
+  "echo '=== Checking formatting ==='",
+  "uv run ruff format --check src/ tests/ samples/",
+  "echo ''",
+  "echo '✓ All checks passed! Ready for release.'",
+]
+
+[tasks.publish]
+description = "Publish to PyPI using twine (requires: uv pip install twine)"
+run = '''
+#!/usr/bin/env bash
+if ! command -v twine &> /dev/null; then
+  echo "Error: twine not found. Install with: uv pip install twine"
+  exit 1
+fi
+if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
+  echo "Error: No distribution files found in dist/"
+  echo "Run 'mise run build' first"
+  exit 1
+fi
+echo "Publishing to PyPI..."
+twine upload dist/*
+'''
+
+[tasks.publish-test]
+description = "Publish to TestPyPI for testing"
+run = '''
+#!/usr/bin/env bash
+if ! command -v twine &> /dev/null; then
+  echo "Error: twine not found. Install with: uv pip install twine"
+  exit 1
+fi
+if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
+  echo "Error: No distribution files found in dist/"
+  echo "Run 'mise run build' first"
+  exit 1
+fi
+echo "Publishing to TestPyPI..."
+twine upload --repository testpypi dist/*
+'''
