@@ -36,6 +36,10 @@ import sys
 from argparse import ArgumentError
 from collections import OrderedDict
 
+from importlib.metadata import version as get_version
+
+__version__ = get_version("argtoolbox")
+
 # global logger variable
 # log = logging.getLogger('argtoolbox')
 # log.setLevel(logging.INFO)
@@ -1295,7 +1299,7 @@ class BasicProgram:
         desc=None,
         mandatory=False,
         use_config_file=True,
-        version="0.1-alpha",
+        version=__version__,
         force_debug=False,
         force_debug_to_file=False,
     ):

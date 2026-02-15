@@ -1,3 +1,4 @@
-__version__ = "1.1.6"
-
+from importlib.metadata import version as get_version
 from .argtoolbox import *
+
+__version__ = get_version("argtoolbox")
