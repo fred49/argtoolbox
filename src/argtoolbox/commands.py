@@ -134,13 +134,12 @@ class ConfigGenerationCommand(DefaultCommand):
                 configfile += ".cfg"
             self.log.warn("Using '%s' as configuration file name.", configfile)
 
-        if not args.force_yes:
-            if os.path.exists(configfile):
-                self.log.warn(
-                    "The current file already exists : %s", configfile)
-                if not query_yes_no("Overwrite ?", "no"):
-                    self.log.error("Aborted.")
-                    return False
+        if not args.force_yes and os.path.exists(configfile):
+            self.log.warn(
+                "The current file already exists : %s", configfile)
+            if not query_yes_no("Overwrite ?", "no"):
+                self.log.error("Aborted.")
+                return False
         config.write_default_config_file(configfile, args.nocomments)
         self.log.info("Done.")
         return True
@@ -284,13 +283,12 @@ class ConfigGenerationV2Command:
                 configfile += ".cfg"
             self.log.warn("Using '%s' as configuration file name.", configfile)
 
-        if not args.force_yes:
-            if os.path.exists(configfile):
-                self.log.warn(
-                    "The current file already exists : %s", configfile)
-                if not query_yes_no("Overwrite ?", "no"):
-                    self.log.error("Aborted.")
-                    return False
+        if not args.force_yes and os.path.exists(configfile):
+            self.log.warn(
+                "The current file already exists : %s", configfile)
+            if not query_yes_no("Overwrite ?", "no"):
+                self.log.error("Aborted.")
+                return False
         config.write_default_config_file(configfile, args.nocomments)
         self.log.info("Done.")
         return True

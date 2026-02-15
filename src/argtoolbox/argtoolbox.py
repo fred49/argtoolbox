@@ -152,10 +152,7 @@ class Config:
         self.sections = OrderedDict()
         self._default_section = self.add_section(SimpleSection("DEFAULT"))
         self.parser = None
-        if sys.version_info[2] <= 2:
-            self.file_parser = configparser.SafeConfigParser()
-        else:
-            self.file_parser = configparser.ConfigParser()
+        self.file_parser = configparser.ConfigParser()
 
     def add_section(self, section):
         """Add a new Section object to the config. Should be a subclass of
@@ -190,14 +187,9 @@ class Config:
             if isinstance(self.config_file, str):
                 discoveredFileList = self.file_parser.read(self.config_file)
             else:
-                if sys.version_info[2] < 2:
-                    discoveredFileList = self.file_parser.readfp(
-                        self.config_file,
-                        "file descriptor")
-                else:
-                    discoveredFileList = self.file_parser.read_file(
-                        self.config_file,
-                        "file descriptor")
+                discoveredFileList = self.file_parser.read_file(
+                    self.config_file,
+                    "file descriptor")
         else:
             defaultFileList = []
             defaultFileList.append(self.prog_name + ".cfg")
@@ -290,10 +282,7 @@ class Config:
             log = logging.getLogger('argtoolbox')
             log.debug("reloading configuration ...")
             if args.config_file:
-                if sys.version_info[2] <= 2:
-                    self.file_parser = configparser.SafeConfigParser()
-                else:
-                    self.file_parser = configparser.ConfigParser()
+                self.file_parser = configparser.ConfigParser()
                 discoveredFileList = self.file_parser.read(args.config_file)
                 log.debug("discoveredFileList: %s", discoveredFileList)
             for s in list(self.sections.values()):
@@ -314,7 +303,7 @@ class Config:
 
     def __str__(self):
         res = []
-        res.append("Configuration of %(prog_name)s : " % self.__dict__)
+        res.append("Configuration of {prog_name} : ".format(**self.__dict__))
         for s in list(self.sections.values()):
             res.append("".join(s.get_representation("\t")))
         return "\n".join(res)
@@ -744,9 +733,9 @@ class Element:
                     data = data.strip()
                     data = data.split()
                     if not data:
-                        msg = "The optional field '%(name)s' was present, \
+                        msg = f"The optional field '{self._name}' was present, \
 type is list, but the current value is an empty \
-list." % {"name": self._name}
+list."
                         log.error(msg)
                         raise ValueError(msg)
                 elif self.e_type == str:
@@ -754,23 +743,19 @@ list." % {"name": self._name}
                     # happens only when the current field is present,
                     # type is string, but value is ''
                     if not data:
-                        msg = "The optional field '%(name)s' was present, \
+                        msg = f"The optional field '{self._name}' was present, \
                         type is string, but the current value is an empty \
-                        string." % {"name": self._name}
+                        string."
                         log.error(msg)
                         raise ValueError(msg)
                 else:
-                    msg = "Data type not supported : %(type)s " % {
-                        "type": self.e_type}
+                    msg = f"Data type not supported : {self.e_type} "
                     log.error(msg)
                     raise TypeError(msg)
 
             except ValueError as ex:
-                msg = "The current field '%(name)s' was present, but the \
-required type is : %(e_type)s." % {
-                "name": self._name,
-                "e_type": self.e_type
-                }
+                msg = f"The current field '{self._name}' was present, but the \
+required type is : {self.e_type}."
                 log.error(msg)
                 log.error(str(ex))
                 raise ValueError(str(ex))
@@ -785,8 +770,8 @@ type : '%(e_type)s'", log_data)
 
         except configparser.NoOptionError:
             if self.conf_required:
-                msg = "The required field '%(name)s' was missing from the \
-config file." % {"name": self._name}
+                msg = f"The required field '{self._name}' was missing from the \
+config file."
                 log.error(msg)
                 raise ValueError(msg)
 
@@ -813,7 +798,7 @@ config file." % {"name": self._name}
         You does not need to have multiple declarations.
         """
 
-        ret = dict()
+        ret = {}
         if self._required:
             if self.value is not None:
                 ret["default"] = self.value
@@ -822,10 +807,9 @@ config file." % {"name": self._name}
         ret["dest"] = self._name
         if self._dest:
             ret["dest"] = self._dest
-        if not self.e_type_exclude:
-            if self.e_type == int or self.e_type == float:
-                # Just override argparse.add_argument 'type' parameter for int or float.
-                ret["type"] = self.e_type
+        if not self.e_type_exclude and (self.e_type == int or self.e_type == float):
+            # Just override argparse.add_argument 'type' parameter for int or float.
+            ret["type"] = self.e_type
         if self.value is not None:
             ret["default"] = self.value
         if self._desc:
@@ -1390,10 +1374,7 @@ class BasicProgram:
 def query_yes_no(question, default="yes"):
     """Just prompt the user for a yes/no question"""
     res = _query_yes_no(question, default)
-    if res == "yes":
-        return True
-    else:
-        return False
+    return res == "yes"
 
 
 def _query_yes_no(question, default="yes"):
@@ -1415,7 +1396,7 @@ def _query_yes_no(question, default="yes"):
     elif default == "no":
         prompt = " [y/N] "
     else:
-        raise ValueError("invalid default answer: '%s'" % default)
+        raise ValueError(f"invalid default answer: '{default}'")
 
     while True:
         sys.stdout.write(question + prompt)
