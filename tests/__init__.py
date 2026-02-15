@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 """TODO"""
 
 
-import unittest
 import logging
+import unittest
+
 from .tests import TestDefaultSection
 
 LOG = logging.getLogger('tests')

@@ -1,5 +1,4 @@
 #! /usr/bin/env python2
-# -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
 # This file is part of argtoolbox.
@@ -27,9 +26,8 @@
 
 
 import io
-from argtoolbox import BasicProgram
-from argtoolbox import TestCommand
-from argtoolbox import SimpleSection, Element, Base64ElementHook
+
+from argtoolbox import Base64ElementHook, BasicProgram, Element, SimpleSection, TestCommand
 
 # if you want to debug argcomplete completion,
 # you just need to export _ARC_DEBUG=True

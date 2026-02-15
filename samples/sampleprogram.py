@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
 # This file is part of argtoolbox.
@@ -26,8 +25,7 @@
 
 
 
-from argtoolbox import DefaultCommand
-from argtoolbox import BasicProgram
+from argtoolbox import BasicProgram, DefaultCommand
 
 # if you want to debug argcomplete completion,
 # you just need to export _ARC_DEBUG=True
@@ -37,7 +35,7 @@ class TestCommand(DefaultCommand):
     """Just a simple command, using the default command class."""
 
     def __call__(self, args):
-        super(TestCommand, self).__call__(args)
+        super().__call__(args)
         # Step 2
         print("")
         print("This is the beginning of the TestCommand class.")

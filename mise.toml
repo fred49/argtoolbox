@@ -1,0 +1,53 @@
+[tools]
+python = "3.12"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+
+[tasks.install]
+description = "Install dependencies including dev tools"
+run = "uv sync --extra dev"
+
+[tasks.add]
+description = "Add a package (usage: mise run add -- package-name)"
+run = "uv add"
+
+[tasks.test]
+description = "Run tests"
+run = "uv run python tests/tests.py"
+
+[tasks.lint]
+description = "Lint code with Ruff"
+run = "uv run ruff check src/ tests/ samples/"
+
+[tasks.lint-fix]
+description = "Fix linting issues automatically"
+run = "uv run ruff check --fix src/ tests/ samples/"
+
+[tasks.format]
+description = "Format code with Ruff"
+run = "uv run ruff format src/ tests/ samples/"
+
+[tasks.format-check]
+description = "Check formatting without changes"
+run = "uv run ruff format --check src/ tests/ samples/"
+
+[tasks.check]
+description = "Run all checks (lint, format, test)"
+run = [
+  "uv run ruff check src/ tests/ samples/",
+  "uv run ruff format --check src/ tests/ samples/",
+  "uv run python tests/tests.py"
+]
+
+[tasks.cli]
+description = "Run argtoolboxtool CLI"
+run = "uv run argtoolboxtool"
+
+[tasks.clean]
+description = "Clean build artifacts and caches"
+run = "rm -rf dist/ build/ *.egg-info .pytest_cache .ruff_cache .mypy_cache .coverage htmlcov/ src/*.egg-info"
+
+[tasks.build]
+description = "Build distribution packages"
+run = "uv build"

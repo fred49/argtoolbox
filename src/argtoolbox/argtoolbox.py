@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
 
@@ -26,16 +25,16 @@
 #
 
 
+import argparse
+import base64
+import binascii
+import configparser
+import copy
+import logging
 import os
 import sys
-import logging
-import base64
-import copy
-import binascii
-from collections import OrderedDict
-import configparser
-import argparse
 from argparse import ArgumentError
+from collections import OrderedDict
 
 # global logger variable
 # log = logging.getLogger('argtoolbox')
@@ -77,7 +76,7 @@ class Base64ElementHook(DefaultHook):
     """This hook is used as a post reading processing in order to convert
     base64 data stored into the config file into plain text data."""
     def __init__(self, warning=False):
-        super(Base64ElementHook, self).__init__()
+        super().__init__()
         self.warning = warning
 
     def __call__(self, elt):
@@ -97,11 +96,11 @@ class Base64ElementHook(DefaultHook):
         if self.warning:
             log.warning(("Current field '%(name)s' is not "
                          "stored in the configuration file with base64 encoding"),
-                        {"name": getattr(elt, "_name")})
+                        {"name": elt._name})
         else:
             log.error(("Current field '%(name)s' is not stored in the "
                        "configuration file with base64 encoding"),
-                      {"name": getattr(elt, "_name")})
+                      {"name": elt._name})
             raise TypeError(str(ex))
 
 
@@ -214,7 +213,7 @@ class Config:
             msg = "The required config file was missing."
             msg += " Default config files : " + str(defaultFileList)
             log.error(msg)
-            raise EnvironmentError(msg)
+            raise OSError(msg)
 
         log.debug("loading configuration ...")
         if exit_on_failure:
@@ -425,7 +424,7 @@ class _AbstractSection:
 class _Section(_AbstractSection):
     """Simple abstract section object, container for Elements"""
     def __init__(self, *args, **kwargs):
-        super(_Section, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.elements = OrderedDict()
 
     def add_element(self, elt):
@@ -483,7 +482,7 @@ class _Section(_AbstractSection):
         """
         if len(self.elements) < 1:
             return
-        super(_Section, self).write_config_file(f, comments)
+        super().write_config_file(f, comments)
 
         for e in list(self.elements.values()):
             e.write_config_file(f, comments)
@@ -499,7 +498,7 @@ class SimpleSection(_Section):
     """
 
     def __init__(self, name, *args, **kwargs):
-        super(SimpleSection, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._name = name
 
     def get_representation(self, prefix="", suffix="\n"):
@@ -543,7 +542,7 @@ class SubSection(_Section):
 class ListSection(_AbstractSection):
     """ TODO """
     def __init__(self, name, *args, **kwargs):
-        super(ListSection, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.elements = OrderedDict()
         self._name = name
 
@@ -696,12 +695,7 @@ class Element:
         value = self.value
         if self.hidden:
             value = "xxxxxxxx"
-        line = "{prefix} - {name} : {value}{suffix}".format(
-            prefix=prefix,
-            name=self._name,
-            value=value,
-            suffix=suffix
-        )
+        line = f"{prefix} - {self._name} : {value}{suffix}"
         return line
 
     def __str__(self):
@@ -900,7 +894,7 @@ class ElementWithSubSections(Element):
     """
 
     def __init__(self, name, subsection, *args, **kwargs):
-        super(ElementWithSubSections, self).__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs)
         self.e_type = str
         # FIXME: why using a list if we have only one section ?
         self.sections = OrderedDict()
@@ -1020,7 +1014,7 @@ class ElementWithRelativeSubSection(Element):
     """
 
     def __init__(self, name, rss, *args, **kwargs):
-        super(ElementWithRelativeSubSection, self).__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs)
         self.e_type = list
         self.sections = OrderedDict()
         if not issubclass(rss.__class__, SubSection):
@@ -1034,7 +1028,7 @@ class ElementWithRelativeSubSection(Element):
             for sec_name in self.value:
                 try:
                     sec = copy.deepcopy(self.rss, None)
-                    setattr(sec, '_name', sec_name)
+                    sec._name = sec_name
                     self.sections[sec_name] = sec
                     sec.load(file_parser)
                 except ValueError as e:
@@ -1101,7 +1095,7 @@ class TestCommand(DefaultCommand):
     """Just a simple command, using the default command class."""
 
     def __call__(self, args):
-        super(TestCommand, self).__call__(args)
+        super().__call__(args)
         print("")
         print("This is the beginning of the TestCommand class.")
         print("")
@@ -1127,8 +1121,7 @@ class DefaultCompleter:
         self.func_name = func_name
 
     def __call__(self, prefix, **kwargs):
-        from argcomplete import debug
-        from argcomplete import warn
+        from argcomplete import debug, warn
         try:
             debug("\n------------ DefaultCompleter -----------------")
             debug("Kwargs content :")
@@ -1176,9 +1169,7 @@ class DefaultProgram:
 
         def patch(self, parser, namespace, values, option_string=None):
             """patch original __call__ method for argparse 1.1 (fix)"""
-            from argparse import _UNRECOGNIZED_ARGS_ATTR
-            from argparse import SUPPRESS
-            from argparse import _
+            from argparse import _UNRECOGNIZED_ARGS_ATTR, SUPPRESS, _
 
             parser_name = values[0]
             arg_strings = values[1:]
@@ -1220,7 +1211,7 @@ class DefaultProgram:
         args = self.parse_args()
 
         if getattr(args, 'debug', False) or self.force_debug:
-            if hasattr(args, 'debugger_names') and getattr(args, 'debugger_names'):
+            if hasattr(args, 'debugger_names') and args.debugger_names:
                 for name in args.debugger_names:
                     llog = logging.getLogger(name)
                     llog.setLevel(logging.DEBUG)

@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 
 
 # This file is part of argtoolbox.
@@ -27,12 +26,12 @@
 
 
 
-import unittest
 import io
-import binascii
-import sys
 import logging
-from argtoolbox import Config, Element, Base64ElementHook
+import sys
+import unittest
+
+from argtoolbox import Base64ElementHook, Config, Element
 
 
 # pylint: disable-msg=R0904

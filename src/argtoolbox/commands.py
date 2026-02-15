@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 """TODO"""
 # PYTHON_ARGCOMPLETE_OK
 
@@ -27,23 +26,19 @@
 
 
 
-import sys
-import stat
-import os
-import shutil
-import uuid
-import tempfile
+import argparse
 import importlib
 import inspect
 import logging
-import argparse
-from .argtoolbox import Config
-from .argtoolbox import BasicProgram
-from .argtoolbox import DefaultProgram
-from .argtoolbox import DefaultCommand
-from .argtoolbox import DefaultCompleter as Completer
-from .argtoolbox import query_yes_no
+import os
+import shutil
+import stat
+import sys
+import tempfile
+import uuid
 
+from .argtoolbox import BasicProgram, Config, DefaultCommand, DefaultProgram, query_yes_no
+from .argtoolbox import DefaultCompleter as Completer
 
 # if you want to debug argcomplete completion,
 # you just need to export _ARC_DEBUG=True
@@ -75,7 +70,7 @@ class ConfigGenerationCommand(DefaultCommand):
         self.log.info("Program found : %s", program)
         if not os.path.exists(program):
             self.log.error("the current input program does not exist : %s", program)
-            raise IOError('No such file')
+            raise OSError('No such file')
 
         dest = os.path.join(
             tempfile.gettempdir(),
@@ -183,7 +178,7 @@ class GenerateCommand(DefaultCommand):
         src = os.path.join(path, 'templates', 'default.tml')
         self.log.info("Loading template: %s", src)
         template = ""
-        with open(src, 'r') as fde:
+        with open(src) as fde:
             template = fde.read()
         template = template.replace('#{prog_name}', prog_name)
         template = template.replace('#{prog_name_class}', prog_name.title())
@@ -208,7 +203,7 @@ class MyProgram(BasicProgram):
     """Main program"""
 
     def add_commands(self):
-        super(MyProgram, self).add_commands()
+        super().add_commands()
         self.parser.formatter_class = argparse.RawTextHelpFormatter
         subparsers = self.parser.add_subparsers()
         self.add_command_new(subparsers)
@@ -258,7 +253,7 @@ class MyProgram(BasicProgram):
         parser_tmp.set_defaults(__func__=ConfigGenerationCommand())
 
 
-class ConfigGenerationV2Command(object):
+class ConfigGenerationV2Command:
     """TODO"""
     # pylint: disable=too-few-public-methods
 
