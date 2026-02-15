@@ -35,7 +35,6 @@ import os
 import sys
 from argparse import ArgumentError
 from collections import OrderedDict
-
 from importlib.metadata import version as get_version
 
 __version__ = get_version("argtoolbox")

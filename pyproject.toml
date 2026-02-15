@@ -1,6 +1,6 @@
 [project]
 name = "argtoolbox"
-version = "2.0.0"
+version = "1.1.6"
 description = "The easy way to create a short program with file options and command line options."
 readme = "README.rst"
 requires-python = ">=3.9"
@@ -30,6 +30,8 @@ dependencies = [
 dev = [
     "ruff>=0.7.0",
     "build>=1.4.0",
+    "tox>=4.0.0",
+    "tox-uv>=1.0.0",
 ]
 
 [project.urls]

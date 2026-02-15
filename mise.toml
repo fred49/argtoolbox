@@ -16,6 +16,14 @@ run = "uv add"
 description = "Run tests"
 run = "uv run python tests/tests.py"
 
+[tasks.test-all]
+description = "Run tests on all Python versions (3.9-3.12) using tox"
+run = "uv run tox"
+
+[tasks.test-py]
+description = "Run tests on specific Python version (usage: mise run test-py -- py39)"
+run = "uv run tox -e"
+
 [tasks.lint]
 description = "Lint code with Ruff"
 run = "uv run ruff check src/ tests/ samples/"
