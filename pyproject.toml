@@ -1,6 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Don't use VCS for file discovery - only use explicit includes
+[tool.hatchling.build]
+ignore-vcs = true
+only-include = [
+    "src",
+    "README.rst",
+]
+
+[tool.hatchling.build.targets.wheel]
+packages = ["src/argtoolbox"]
+
 [project]
 name = "argtoolbox"
-version = "1.1.6"
+dynamic = "1.2.0"
 description = "The easy way to create a short program with file options and command line options."
 readme = "README.rst"
 requires-python = ">=3.9"
@@ -41,21 +56,6 @@ Repository = "https://github.com/fred49/argtoolbox"
 # CLI entry points
 [project.scripts]
 argtoolboxtool = "argtoolbox.commands:PROG"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-# Don't use VCS for file discovery - only use explicit includes
-[tool.hatchling.build]
-ignore-vcs = true
-only-include = [
-    "src",
-    "README.rst",
-]
-
-[tool.hatchling.build.targets.wheel]
-packages = ["src/argtoolbox"]
 
 # Ruff configuration
 [tool.ruff]
