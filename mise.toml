@@ -42,6 +42,12 @@ run = "uv run ruff format src/ tests/ samples/"
 description = "Check formatting without changes"
 run = "uv run ruff format --check src/ tests/ samples/"
 
+[tasks.check-for-release]
+description = "Run checks for the release. check task should be used but not yet compliant"
+run = [
+  "uv run python tests/tests.py"
+]
+
 [tasks.check]
 description = "Run all checks (lint, format, test)"
 run = [
@@ -64,7 +70,7 @@ run = "uv build"
 
 [tasks.release]
 description = "Check, build and tag a version, then push (--no-push: no push)"
-depends = ["check"]
+depends = ["check-for-release"]
 usage = '''
 arg "<version>" help "X.Y.Z, or patch, minor or major to add 1 to the last tag"
 flag "--no-push" help "Only build and tag locally, do not push the branch or the tag"
@@ -129,8 +135,8 @@ fi
 # The tag does not exist yet, so the version is given to hatch-vcs
 rm -rf dist
 SETUPTOOLS_SCM_PRETEND_VERSION="$version" uv build
-if [ ! -f "dist/vidlib-$version.tar.gz" ]; then
-  echo "dist/vidlib-$version.tar.gz was not built" >&2
+if [ ! -f "dist/argtoolbox-$version.tar.gz" ]; then
+  echo "dist/argtoolbox-$version.tar.gz was not built" >&2
   exit 1
 fi
 
@@ -141,8 +147,8 @@ else
   echo "Created tag $tag"
 fi
 
-# uv installs vidlib again because the tags changed: --version shows the new version
-uv run vidlib --version
+# uv installs argtoolbox again because the tags changed: --version shows the new version
+uv run argtoolboxtool --version
 
 if [ "${usage_no_push:-false}" = "true" ]; then
   echo "Release done: built dist/ and tagged $tag. Nothing was pushed."
