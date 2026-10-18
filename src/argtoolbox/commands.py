@@ -323,7 +323,7 @@ def cli_generate_config(
 
 
 PROG = MyProgram(
-    "argtoolbox_utils",
+    "argtoolboxtool",
     use_config_file=False,
     desc="""This tool help you generate config file for
         program based on argtoolbox package, create new basic
