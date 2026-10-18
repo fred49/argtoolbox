@@ -42,19 +42,10 @@ run = "uv run ruff format src/ tests/ samples/"
 description = "Check formatting without changes"
 run = "uv run ruff format --check src/ tests/ samples/"
 
-[tasks.check-for-release]
-description = "Run checks for the release. check task should be used but not yet compliant"
-run = [
-  "uv run python tests/tests.py"
-]
-
 [tasks.check]
 description = "Run all checks (lint, format, test)"
-run = [
-  "uv run ruff check src/ tests/ samples/",
-  "uv run ruff format --check src/ tests/ samples/",
-  "uv run python tests/tests.py"
-]
+depends = ["format-check", "test"]
+# task to add "lint"
 
 [tasks.cli]
 description = "Run argtoolboxtool CLI"
@@ -70,7 +61,7 @@ run = "uv build"
 
 [tasks.release]
 description = "Check, build and tag a version, then push (--no-push: no push)"
-depends = ["check-for-release"]
+depends = ["check"]
 usage = '''
 arg "<version>" help "X.Y.Z, or patch, minor or major to add 1 to the last tag"
 flag "--no-push" help "Only build and tag locally, do not push the branch or the tag"
@@ -163,12 +154,12 @@ description = "Publish to PyPI using twine (requires: uv pip install twine)"
 run = '''
 #!/usr/bin/env bash
 if ! command -v twine &> /dev/null; then
-  echo "Error: twine not found. Install with: uv pip install twine"
+  echo "Error: twine not found."
   exit 1
 fi
 if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
   echo "Error: No distribution files found in dist/"
-  echo "Run 'mise run build' first"
+  echo "Run 'mise run release' first"
   exit 1
 fi
 echo "Publishing to PyPI..."
@@ -180,7 +171,7 @@ description = "Publish to TestPyPI for testing"
 run = '''
 #!/usr/bin/env bash
 if ! command -v twine &> /dev/null; then
-  echo "Error: twine not found. Install with: uv pip install twine"
+  echo "Error: twine not found."
   exit 1
 fi
 if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
