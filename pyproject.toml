@@ -1,21 +1,6 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-# Don't use VCS for file discovery - only use explicit includes
-[tool.hatchling.build]
-ignore-vcs = true
-only-include = [
-    "src",
-    "README.rst",
-]
-
-[tool.hatchling.build.targets.wheel]
-packages = ["src/argtoolbox"]
-
 [project]
 name = "argtoolbox"
-version = "1.2.0"
+dynamic = ["version"]
 description = "The easy way to create a short program with file options and command line options."
 readme = "README.rst"
 requires-python = ">=3.9"
@@ -47,6 +32,7 @@ dev = [
     "build>=1.4.0",
     "tox>=4.0.0",
     "tox-uv>=1.0.0",
+    "pytest",
 ]
 
 [project.urls]
@@ -56,6 +42,34 @@ Repository = "https://github.com/fred49/argtoolbox"
 # CLI entry points
 [project.scripts]
 argtoolboxtool = "argtoolbox.commands:PROG"
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+# The version comes from the git tag vX.Y.Z (hatch-vcs)
+[tool.hatch.version]
+source = "vcs"
+
+[tool.uv]
+# Reinstall vidlib when the commit or the tags change, so that --version stays up to date
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
+
+# Don't use VCS for file discovery - only use explicit includes
+[tool.hatch.build]
+ignore-vcs = true
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "src",
+    "tests",
+    "README.md",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/argtoolbox"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 # Ruff configuration
 [tool.ruff]
