@@ -60,33 +60,6 @@ run = "rm -rf dist/ build/ *.egg-info .pytest_cache .ruff_cache .mypy_cache .cov
 description = "Build distribution packages"
 run = "uv build"
 
-[tasks.show-version]
-description = "Show current version"
-run = "grep '^version = ' pyproject.toml | cut -d'\"' -f2"
-
-[tasks.bump-version]
-description = "Bump version number (usage: mise run bump-version -- 1.2.0)"
-run = '''
-#!/usr/bin/env bash
-VERSION="$1"
-if [ -z "$VERSION" ]; then
-  echo "Usage: mise run bump-version -- <version>"
-  echo "Example: mise run bump-version -- 1.2.0"
-  exit 1
-fi
-echo "Updating version to $VERSION..."
-sed -i 's/^version = ".*"/version = "'$VERSION'"/' pyproject.toml
-echo "✓ Updated pyproject.toml"
-echo ""
-echo "Version bumped to $VERSION"
-echo "Next steps:"
-echo "  1. Review changes: git diff"
-echo "  2. Run checks: mise run release-check"
-echo "  3. Commit: git commit -am 'chore: bump version to $VERSION'"
-echo "  4. Tag: git tag v$VERSION"
-echo "  5. Build: mise run build"
-'''
-
 [tasks.release-check]
 description = "Run all pre-release checks"
 run = [
