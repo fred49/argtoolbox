@@ -1,0 +1,96 @@
+[project]
+name = "argtoolbox"
+dynamic = ["version"]
+description = "The easy way to create a short program with file options and command line options."
+readme = "README.rst"
+requires-python = ">=3.9"
+authors = [
+    { name = "Frederic MARTIN", email = "frederic.martin.fma@gmail.com" }
+]
+keywords = ["argparse", "ConfigFile", "command line interface"]
+license = { text = "GPL-3.0-or-later" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Environment :: Console",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "argcomplete>=1.9.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.7.0",
+    "build>=1.4.0",
+    "tox>=4.0.0",
+    "tox-uv>=1.0.0",
+    "twine",
+    "pytest",
+]
+
+[project.urls]
+Homepage = "https://github.com/fred49/argtoolbox"
+Repository = "https://github.com/fred49/argtoolbox"
+
+# CLI entry points
+[project.scripts]
+argtoolboxtool = "argtoolbox.commands:PROG"
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+# The version comes from the git tag vX.Y.Z (hatch-vcs)
+[tool.hatch.version]
+source = "vcs"
+
+[tool.uv]
+# Reinstall vidlib when the commit or the tags change, so that --version stays up to date
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
+
+# Don't use VCS for file discovery - only use explicit includes
+[tool.hatch.build]
+ignore-vcs = true
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "src",
+    "tests",
+    "README.rst",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/argtoolbox"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# Ruff configuration
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # Allow assert in tests

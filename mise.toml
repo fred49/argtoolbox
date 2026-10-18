@@ -1,0 +1,187 @@
+[tools]
+python = "3.12"
+ruff = "0.16.10"
+uv = "0.12.23"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+
+[tasks.install]
+description = "Install dependencies including dev tools"
+run = "uv sync --extra dev"
+
+[tasks.add]
+description = "Add a package (usage: mise run add -- package-name)"
+run = "uv add"
+
+[tasks.test]
+description = "Run tests"
+run = "uv run python tests/tests.py"
+
+[tasks.test-all]
+description = "Run tests on all Python versions (3.9-3.12) using tox"
+run = "uv run tox"
+
+[tasks.test-py]
+description = "Run tests on specific Python version (usage: mise run test-py -- py39)"
+run = "uv run tox -e"
+
+[tasks.lint]
+description = "Lint code with Ruff"
+run = "uv run ruff check src/ tests/ samples/"
+
+[tasks.lint-fix]
+description = "Fix linting issues automatically"
+run = "uv run ruff check --fix src/ tests/ samples/"
+
+[tasks.format]
+description = "Format code with Ruff"
+run = "uv run ruff format src/ tests/ samples/"
+
+[tasks.format-check]
+description = "Check formatting without changes"
+run = "uv run ruff format --check src/ tests/ samples/"
+
+[tasks.check]
+description = "Run all checks (lint, format, test)"
+run = [
+  "uv run ruff check src/ tests/ samples/",
+  "uv run ruff format --check src/ tests/ samples/",
+  "uv run python tests/tests.py"
+]
+
+[tasks.cli]
+description = "Run argtoolboxtool CLI"
+run = "uv run argtoolboxtool"
+
+[tasks.clean]
+description = "Clean build artifacts and caches"
+run = "rm -rf dist/ build/ *.egg-info .pytest_cache .ruff_cache .mypy_cache .coverage htmlcov/ src/*.egg-info"
+
+[tasks.build]
+description = "Build distribution packages"
+run = "uv build"
+
+[tasks.release]
+description = "Check, build and tag a version, then push (--no-push: no push)"
+depends = ["check"]
+usage = '''
+arg "<version>" help "X.Y.Z, or patch, minor or major to add 1 to the last tag"
+flag "--no-push" help "Only build and tag locally, do not push the branch or the tag"
+'''
+run = '''
+set -euo pipefail
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "The working tree is not clean. Commit or stash your changes first." >&2
+  exit 1
+fi
+
+# The last tag is searched from HEAD^: running the task again on a tagged commit
+# (for example after a --no-push run) gives the same version, and its tag is reused
+last=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || true)
+last=${last#v}
+last=${last:-0.0.0}
+
+xyz='^[0-9]+\.[0-9]+\.[0-9]+$'
+case "$usage_version" in
+  patch|minor|major)
+    if ! echo "$last" | grep -Eq "$xyz"; then
+      echo "Cannot add 1 to the last tag v$last: it is not vX.Y.Z" >&2
+      exit 1
+    fi
+    major=${last%%.*}
+    rest=${last#*.}
+    minor=${rest%%.*}
+    patch=${rest#*.}
+    case "$usage_version" in
+      major) version="$((major + 1)).0.0" ;;
+      minor) version="$major.$((minor + 1)).0" ;;
+      patch) version="$major.$minor.$((patch + 1))" ;;
+    esac
+    ;;
+  *)
+    version=${usage_version#v}
+    ;;
+esac
+if ! echo "$version" | grep -Eq "$xyz"; then
+  echo "Bad version '$version': use X.Y.Z, patch, minor or major" >&2
+  exit 1
+fi
+tag="v$version"
+
+# One version tag per commit
+head_tags=$(git tag --points-at HEAD --list 'v[0-9]*')
+if [ -n "$head_tags" ] && [ "$head_tags" != "$tag" ]; then
+  echo "HEAD already has the tag $head_tags, not $tag." >&2
+  exit 1
+fi
+
+tag_exists=false
+if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
+  if [ "$(git rev-parse "$tag^{commit}")" != "$(git rev-parse HEAD)" ]; then
+    echo "Tag $tag already exists on another commit." >&2
+    exit 1
+  fi
+  tag_exists=true
+fi
+
+# The tag does not exist yet, so the version is given to hatch-vcs
+rm -rf dist
+SETUPTOOLS_SCM_PRETEND_VERSION="$version" uv build
+if [ ! -f "dist/vidlib-$version.tar.gz" ]; then
+  echo "dist/vidlib-$version.tar.gz was not built" >&2
+  exit 1
+fi
+
+if [ "$tag_exists" = "true" ]; then
+  echo "Tag $tag already exists on HEAD, reusing it"
+else
+  git tag -a "$tag" -m "Release $tag"
+  echo "Created tag $tag"
+fi
+
+# uv installs vidlib again because the tags changed: --version shows the new version
+uv run vidlib --version
+
+if [ "${usage_no_push:-false}" = "true" ]; then
+  echo "Release done: built dist/ and tagged $tag. Nothing was pushed."
+else
+  git push --atomic origin HEAD "refs/tags/$tag"
+  echo "Release $tag pushed to origin."
+fi
+'''
+
+[tasks.publish]
+description = "Publish to PyPI using twine (requires: uv pip install twine)"
+run = '''
+#!/usr/bin/env bash
+if ! command -v twine &> /dev/null; then
+  echo "Error: twine not found. Install with: uv pip install twine"
+  exit 1
+fi
+if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
+  echo "Error: No distribution files found in dist/"
+  echo "Run 'mise run build' first"
+  exit 1
+fi
+echo "Publishing to PyPI..."
+twine upload dist/*
+'''
+
+[tasks.publish-test]
+description = "Publish to TestPyPI for testing"
+run = '''
+#!/usr/bin/env bash
+if ! command -v twine &> /dev/null; then
+  echo "Error: twine not found. Install with: uv pip install twine"
+  exit 1
+fi
+if [ ! -d "dist" ] || [ -z "$(ls -A dist)" ]; then
+  echo "Error: No distribution files found in dist/"
+  echo "Run 'mise run build' first"
+  exit 1
+fi
+echo "Publishing to TestPyPI..."
+twine upload --repository testpypi dist/*
+'''

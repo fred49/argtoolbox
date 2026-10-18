@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
 
@@ -26,26 +25,29 @@
 #
 
 
+import argparse
+import base64
+import binascii
+import configparser
+import copy
+import logging
 import os
 import sys
-import logging
-import base64
-import copy
-import binascii
-from collections import OrderedDict
-import configparser
-import argparse
 from argparse import ArgumentError
+from collections import OrderedDict
+from importlib.metadata import version as get_version
+
+__version__ = get_version("argtoolbox")
 
 # global logger variable
 # log = logging.getLogger('argtoolbox')
 # log.setLevel(logging.INFO)
 # log.setLevel(logging.DEBUG)
 # logger formats
-DEFAULT_LOGGING_FORMAT = logging.Formatter(
-    "%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
+DEFAULT_LOGGING_FORMAT = logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s", "%H:%M:%S")
 DEBUG_LOGGING_FORMAT = logging.Formatter(
-    "%(asctime)s %(levelname)-8s %(module)s:%(name)s:%(funcName)s:%(lineno)d:%(message)s")
+    "%(asctime)s %(levelname)-8s %(module)s:%(name)s:%(funcName)s:%(lineno)d:%(message)s"
+)
 # logger handlers
 # pylint: disable-msg=C0103
 streamHandler = logging.StreamHandler(sys.stdout)
@@ -76,8 +78,9 @@ class DefaultHook:
 class Base64ElementHook(DefaultHook):
     """This hook is used as a post reading processing in order to convert
     base64 data stored into the config file into plain text data."""
+
     def __init__(self, warning=False):
-        super(Base64ElementHook, self).__init__()
+        super().__init__()
         self.warning = warning
 
     def __call__(self, elt):
@@ -92,16 +95,24 @@ class Base64ElementHook(DefaultHook):
 
     def handle_exception(self, ex, elt):
         """TODO"""
-        log = logging.getLogger('argtoolbox')
+        log = logging.getLogger("argtoolbox")
         log.debug(ex)
         if self.warning:
-            log.warning(("Current field '%(name)s' is not "
-                         "stored in the configuration file with base64 encoding"),
-                        {"name": getattr(elt, "_name")})
+            log.warning(
+                (
+                    "Current field '%(name)s' is not "
+                    "stored in the configuration file with base64 encoding"
+                ),
+                {"name": elt._name},
+            )
         else:
-            log.error(("Current field '%(name)s' is not stored in the "
-                       "configuration file with base64 encoding"),
-                      {"name": getattr(elt, "_name")})
+            log.error(
+                (
+                    "Current field '%(name)s' is not stored in the "
+                    "configuration file with base64 encoding"
+                ),
+                {"name": elt._name},
+            )
             raise TypeError(str(ex))
 
 
@@ -115,14 +126,14 @@ class SectionHook:
     argument name. Then, the value is stored into section.attribute.
 
     """
+
     def __init__(self, section, attribute, opt_name):
         if not issubclass(section.__class__, _AbstractSection):
             raise TypeError("First argument should be a subclass of _Section.")
         self.section = section
 
         if not isinstance(attribute, str):
-            raise TypeError("Second argument should be a string, "
-                            + "attribute name.")
+            raise TypeError("Second argument should be a string, " + "attribute name.")
         self.attribute = attribute
 
         if not isinstance(opt_name, str):
@@ -140,10 +151,11 @@ class SectionHook:
 class Config:
     # pylint: disable-msg=R0902
     """This is the entry point, this class will contains all Section and
-     Elements."""
+    Elements."""
 
-    def __init__(self, prog_name, config_file=None, desc=None,
-                 mandatory=False, use_config_file=True):
+    def __init__(
+        self, prog_name, config_file=None, desc=None, mandatory=False, use_config_file=True
+    ):
         self.prog_name = prog_name
         self.config_file = config_file
         self.use_config_file = use_config_file
@@ -153,10 +165,7 @@ class Config:
         self.sections = OrderedDict()
         self._default_section = self.add_section(SimpleSection("DEFAULT"))
         self.parser = None
-        if sys.version_info[2] <= 2:
-            self.file_parser = configparser.SafeConfigParser()
-        else:
-            self.file_parser = configparser.ConfigParser()
+        self.file_parser = configparser.ConfigParser()
 
     def add_section(self, section):
         """Add a new Section object to the config. Should be a subclass of
@@ -185,26 +194,18 @@ class Config:
         """One you have added all your configuration data (Section, Element,
         ...) you need to load data from the config file."""
         # pylint: disable-msg=W0621
-        log = logging.getLogger('argtoolbox')
+        log = logging.getLogger("argtoolbox")
         discoveredFileList = []
         if self.config_file:
             if isinstance(self.config_file, str):
                 discoveredFileList = self.file_parser.read(self.config_file)
             else:
-                if sys.version_info[2] < 2:
-                    discoveredFileList = self.file_parser.readfp(
-                        self.config_file,
-                        "file descriptor")
-                else:
-                    discoveredFileList = self.file_parser.read_file(
-                        self.config_file,
-                        "file descriptor")
+                discoveredFileList = self.file_parser.read_file(self.config_file, "file descriptor")
         else:
             defaultFileList = []
             defaultFileList.append(self.prog_name + ".cfg")
-            defaultFileList.append(
-                os.path.expanduser('~/.' + self.prog_name + '.cfg'))
-            defaultFileList.append('/etc/' + self.prog_name + '.cfg')
+            defaultFileList.append(os.path.expanduser("~/." + self.prog_name + ".cfg"))
+            defaultFileList.append("/etc/" + self.prog_name + ".cfg")
             log.debug("defaultFileList: " + str(defaultFileList))
             discoveredFileList = self.file_parser.read(defaultFileList)
 
@@ -214,7 +215,7 @@ class Config:
             msg = "The required config file was missing."
             msg += " Default config files : " + str(defaultFileList)
             log.error(msg)
-            raise EnvironmentError(msg)
+            raise OSError(msg)
 
         log.debug("loading configuration ...")
         if exit_on_failure:
@@ -235,16 +236,16 @@ class Config:
         """This method will create and return a new parser with prog_name,
         description, and a config file argument.
         """
-        self.parser = argparse.ArgumentParser(prog=self.prog_name,
-                                              description=self._desc,
-                                              add_help=False, **kwargs)
+        self.parser = argparse.ArgumentParser(
+            prog=self.prog_name, description=self._desc, add_help=False, **kwargs
+        )
         # help is removed because parser.parse_known_args() show help,
         # often partial help. help action will be added during
         # reloading step for parser.parse_args()
         if self.use_config_file:
-            self.parser.add_argument('--config-file',
-                                     action="store",
-                                     help="Other configuration file.")
+            self.parser.add_argument(
+                "--config-file", action="store", help="Other configuration file."
+            )
         return self.parser
 
     def reload(self, hooks=None):
@@ -262,11 +263,11 @@ class Config:
         # will be store into argv.
         args = None
 
-        if os.environ.get('_ARGCOMPLETE'):
+        if os.environ.get("_ARGCOMPLETE"):
             # During argcomplete completion, parse_known_args will return an
             # empty Namespace. In this case, we feed the previous function with
             # data comming from the input completion data
-            compline = os.environ.get('COMP_LINE')
+            compline = os.environ.get("COMP_LINE")
             args = self.parser.parse_known_args(compline.split()[1:])[0]
         else:
             args = self.parser.parse_known_args()[0]
@@ -281,20 +282,21 @@ class Config:
 
         # After the first argument parsing, for configuration reloading,
         # we can add the help action.
-        self.parser.add_argument('-h', '--help', action='help',
-                                 default=argparse.SUPPRESS,
-                                 help='show this help message and exit')
+        self.parser.add_argument(
+            "-h",
+            "--help",
+            action="help",
+            default=argparse.SUPPRESS,
+            help="show this help message and exit",
+        )
 
         # Reloading
         if self.use_config_file:
             # pylint: disable-msg=W0621
-            log = logging.getLogger('argtoolbox')
+            log = logging.getLogger("argtoolbox")
             log.debug("reloading configuration ...")
             if args.config_file:
-                if sys.version_info[2] <= 2:
-                    self.file_parser = configparser.SafeConfigParser()
-                else:
-                    self.file_parser = configparser.ConfigParser()
+                self.file_parser = configparser.ConfigParser()
                 discoveredFileList = self.file_parser.read(args.config_file)
                 log.debug("discoveredFileList: %s", discoveredFileList)
             for s in list(self.sections.values()):
@@ -310,12 +312,15 @@ class Config:
         if s is not None:
             return s
         else:
-            raise AttributeError("'%(class)s' object has no attribute \
-'%(name)s'" % {"name": name, "class": self.__class__.__name__})
+            raise AttributeError(
+                "'%(class)s' object has no attribute \
+'%(name)s'"
+                % {"name": name, "class": self.__class__.__name__}
+            )
 
     def __str__(self):
         res = []
-        res.append("Configuration of %(prog_name)s : " % self.__dict__)
+        res.append("Configuration of {prog_name} : ".format(**self.__dict__))
         for s in list(self.sections.values()):
             res.append("".join(s.get_representation("\t")))
         return "\n".join(res)
@@ -327,13 +332,13 @@ class Config:
         """
         if self.use_config_file:
             # pylint: disable-msg=W0621
-            log = logging.getLogger('argtoolbox')
-            with open(output, 'w') as f:
+            log = logging.getLogger("argtoolbox")
+            with open(output, "w") as f:
                 if comments:
                     f.write("#####################################\n")
                     f.write("# Description :\n")
                     f.write("# -------------\n# ")
-                    for i in self._desc.split('\n'):
+                    for i in self._desc.split("\n"):
                         f.write("# ")
                         f.write(i)
                         f.write("\n")
@@ -350,8 +355,7 @@ class _AbstractSection:
     it, you must implement abstract methods.
     """
 
-    def __init__(self, desc=None, prefix=None,
-                 suffix=None, required=False):
+    def __init__(self, desc=None, prefix=None, suffix=None, required=False):
         self._name = None
         self._desc = desc
         self._prefix = prefix
@@ -389,7 +393,7 @@ class _AbstractSection:
     # pylint: disable-msg=W0613
     # pylint: disable-msg=R0201
     def load(self, file_parser):
-        """ This method must be implemented by the subclass. This method should
+        """This method must be implemented by the subclass. This method should
         read and load all section elements.
         """
         raise NotImplementedError("You must implement this method.")
@@ -415,7 +419,7 @@ class _AbstractSection:
         f.write("[" + self._name + "]\n")
         if self._desc and comments:
             f.write("# Description : ")
-            for i in self._desc.split('\n'):
+            for i in self._desc.split("\n"):
                 f.write("# ")
                 f.write(i)
                 f.write("\n")
@@ -424,8 +428,9 @@ class _AbstractSection:
 
 class _Section(_AbstractSection):
     """Simple abstract section object, container for Elements"""
+
     def __init__(self, *args, **kwargs):
-        super(_Section, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.elements = OrderedDict()
 
     def add_element(self, elt):
@@ -458,7 +463,7 @@ class _Section(_AbstractSection):
                 e.load(file_parser, section)
         except configparser.NoSectionError as e:
             # pylint: disable-msg=W0621
-            log = logging.getLogger('argtoolbox')
+            log = logging.getLogger("argtoolbox")
             if self._required:
                 log.error("Required section : " + section)
                 raise ValueError(e)
@@ -470,8 +475,11 @@ class _Section(_AbstractSection):
         if e is not None:
             return e
         else:
-            raise AttributeError("'%(class)s' object has no attribute \
-'%(name)s'" % {"name": name, "class": self.__class__.__name__})
+            raise AttributeError(
+                "'%(class)s' object has no attribute \
+'%(name)s'"
+                % {"name": name, "class": self.__class__.__name__}
+            )
 
     def get_element(self, name):
         return self.elements.get(name)
@@ -483,7 +491,7 @@ class _Section(_AbstractSection):
         """
         if len(self.elements) < 1:
             return
-        super(_Section, self).write_config_file(f, comments)
+        super().write_config_file(f, comments)
 
         for e in list(self.elements.values()):
             e.write_config_file(f, comments)
@@ -499,27 +507,25 @@ class SimpleSection(_Section):
     """
 
     def __init__(self, name, *args, **kwargs):
-        super(SimpleSection, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._name = name
 
     def get_representation(self, prefix="", suffix="\n"):
         res = []
         if self.count() > 0:
-            res.append(prefix + "Section "
-                       + self.get_section_name().upper() + suffix)
+            res.append(prefix + "Section " + self.get_section_name().upper() + suffix)
             for elt in list(self.elements.values()):
                 res.append("".join(elt.get_representation(prefix)))
         return res
 
 
 class SubSection(_Section):
-    """ TODO """
+    """TODO"""
 
     def get_representation(self, prefix="", suffix="\n"):
         res = []
         if self.count() > 0:
-            res.append(prefix + "SubSection : "
-                       + self.get_section_name().upper() + suffix)
+            res.append(prefix + "SubSection : " + self.get_section_name().upper() + suffix)
             for elt in list(self.elements.values()):
                 res.append("".join(elt.get_representation(prefix)))
         return res
@@ -541,9 +547,10 @@ class SubSection(_Section):
 
 
 class ListSection(_AbstractSection):
-    """ TODO """
+    """TODO"""
+
     def __init__(self, name, *args, **kwargs):
-        super(ListSection, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.elements = OrderedDict()
         self._name = name
 
@@ -551,13 +558,15 @@ class ListSection(_AbstractSection):
 
         section = self.get_section_name()
         try:
-
-            for key in [item for item in file_parser.options(section)
-                        if item not in list(file_parser.defaults().keys())]:
+            for key in [
+                item
+                for item in file_parser.options(section)
+                if item not in list(file_parser.defaults().keys())
+            ]:
                 self.elements[key] = file_parser.get(section, key)
         except configparser.NoSectionError as e:
             # pylint: disable-msg=W0621
-            log = logging.getLogger('argtoolbox')
+            log = logging.getLogger("argtoolbox")
             if self._required:
                 log.error("Required section : " + section)
                 raise ValueError(e)
@@ -593,49 +602,60 @@ class Element:
     """
 
     # pylint: disable-msg=R0913
-    def __init__(self, name, e_type=str, required=False, default=None,
-                 conf_hidden=False, conf_required=False, desc=None, dest=None,
-                 hooks=None, hidden=False, e_type_exclude=False):
+    def __init__(
+        self,
+        name,
+        e_type=str,
+        required=False,
+        default=None,
+        conf_hidden=False,
+        conf_required=False,
+        desc=None,
+        dest=None,
+        hooks=None,
+        hidden=False,
+        e_type_exclude=False,
+    ):
         """Information about how to declare a element which will be load from a
+            configuration file.
+
+        Keyword Arguments:
+
+        - name    -- name of the attribute store into the configuration file.
+
+        - e_type -- Data type of the attribute.
+
+        - e_type_exclude -- Do not export data type to argparse. Example there is a
+        conflict between type=int and action=count for argparse parameters.
+
+        - conf_required -- The current attribute must be present in the
         configuration file.
 
-    Keyword Arguments:
+        - required -- The current attribute must be present into command line
+        arguments except if it is present into configuration file.
 
-    - name    -- name of the attribute store into the configuration file.
+        - default -- Default value used if the attribute is not set in
+        configuration file.
+            This value is also used during configuration file generation.
+            ex: 'attribute = $default_value' or  ';attribute = $default_value'
+            if this attribute is mandatory.
 
-    - e_type -- Data type of the attribute.
+        - desc -- Description used into the configuration file and argparse.
 
-    - e_type_exclude -- Do not export data type to argparse. Example there is a
-    conflict between type=int and action=count for argparse parameters.
+        - desc -- name of the argparse variable name in Namespace.
+            Default: name
 
-    - conf_required -- The current attribute must be present in the
-    configuration file.
+        - conf_hidden -- The current attribute will not be used during
+        configuration file generation.
 
-    - required -- The current attribute must be present into command line
-    arguments except if it is present into configuration file.
+        - hidden -- The current attribute will not be print on console
+        (ex password)
 
-    - default -- Default value used if the attribute is not set in
-    configuration file.
-        This value is also used during configuration file generation.
-        ex: 'attribute = $default_value' or  ';attribute = $default_value'
-        if this attribute is mandatory.
+        - hooks -- one hook or a list of hook. Should be an instance of
+        DefaultHook. The hook will be apply to the element value once read
+        from config file.
 
-    - desc -- Description used into the configuration file and argparse.
-
-    - desc -- name of the argparse variable name in Namespace.
-        Default: name
-
-    - conf_hidden -- The current attribute will not be used during
-    configuration file generation.
-
-    - hidden -- The current attribute will not be print on console
-    (ex password)
-
-    - hooks -- one hook or a list of hook. Should be an instance of
-    DefaultHook. The hook will be apply to the element value once read
-    from config file.
-
-    """
+        """
 
         self._name = name
         self.e_type = e_type
@@ -657,15 +677,13 @@ class Element:
         if isinstance(hooks, list):
             for h in hooks:
                 if not isinstance(h, DefaultHook):
-                    raise TypeError("Hook argument should be a subclass"
-                                    + " of DefaultHook")
+                    raise TypeError("Hook argument should be a subclass" + " of DefaultHook")
             self.hooks = hooks
         else:
             if isinstance(hooks, DefaultHook):
                 self.hooks = [hooks]
             else:
-                raise TypeError(
-                    "Hook argument should be a subclass of DefaultHook")
+                raise TypeError("Hook argument should be a subclass of DefaultHook")
 
     @property
     def value(self):
@@ -696,12 +714,7 @@ class Element:
         value = self.value
         if self.hidden:
             value = "xxxxxxxx"
-        line = "{prefix} - {name} : {value}{suffix}".format(
-            prefix=prefix,
-            name=self._name,
-            value=value,
-            suffix=suffix
-        )
+        line = f"{prefix} - {self._name} : {value}{suffix}"
         return line
 
     def __str__(self):
@@ -733,10 +746,9 @@ class Element:
         all constraints and requirements are checked.
         """
         # pylint: disable-msg=W0621
-        log = logging.getLogger('argtoolbox')
+        log = logging.getLogger("argtoolbox")
         try:
-            log.debug("looking for field (section=" + section_name
-                      + ") : " + self._name)
+            log.debug("looking for field (section=" + section_name + ") : " + self._name)
             data = None
             try:
                 if self.e_type == int:
@@ -750,9 +762,9 @@ class Element:
                     data = data.strip()
                     data = data.split()
                     if not data:
-                        msg = "The optional field '%(name)s' was present, \
+                        msg = f"The optional field '{self._name}' was present, \
 type is list, but the current value is an empty \
-list." % {"name": self._name}
+list."
                         log.error(msg)
                         raise ValueError(msg)
                 elif self.e_type == str:
@@ -760,50 +772,50 @@ list." % {"name": self._name}
                     # happens only when the current field is present,
                     # type is string, but value is ''
                     if not data:
-                        msg = "The optional field '%(name)s' was present, \
+                        msg = f"The optional field '{self._name}' was present, \
                         type is string, but the current value is an empty \
-                        string." % {"name": self._name}
+                        string."
                         log.error(msg)
                         raise ValueError(msg)
                 else:
-                    msg = "Data type not supported : %(type)s " % {
-                        "type": self.e_type}
+                    msg = f"Data type not supported : {self.e_type} "
                     log.error(msg)
                     raise TypeError(msg)
 
             except ValueError as ex:
-                msg = "The current field '%(name)s' was present, but the \
-required type is : %(e_type)s." % {
-                "name": self._name,
-                "e_type": self.e_type
-                }
+                msg = f"The current field '{self._name}' was present, but the \
+required type is : {self.e_type}."
                 log.error(msg)
                 log.error(str(ex))
                 raise ValueError(str(ex))
 
-            log_data = {"name": self._name, "data": data,
-                        "e_type": self.e_type}
+            log_data = {"name": self._name, "data": data, "e_type": self.e_type}
             if self.hidden:
-                log_data['data'] = "xxxxxxxx"
-            log.debug("field found : '%(name)s', value : '%(data)s', \
-type : '%(e_type)s'", log_data)
+                log_data["data"] = "xxxxxxxx"
+            log.debug(
+                "field found : '%(name)s', value : '%(data)s', \
+type : '%(e_type)s'",
+                log_data,
+            )
             self.value = data
 
         except configparser.NoOptionError:
             if self.conf_required:
-                msg = "The required field '%(name)s' was missing from the \
-config file." % {"name": self._name}
+                msg = f"The required field '{self._name}' was missing from the \
+config file."
                 log.error(msg)
                 raise ValueError(msg)
 
             if self.default is not None:
                 self.value = self.default
-                log_data = {"name": self._name, "data": self.default,
-                            "e_type": self.e_type}
+                log_data = {"name": self._name, "data": self.default, "e_type": self.e_type}
                 if self.hidden:
-                    log_data['data'] = "xxxxxxxx"
-                log.debug("Field not found : '%(name)s', default value : \
-'%(data)s', type : '%(e_type)s'", log_data)
+                    log_data["data"] = "xxxxxxxx"
+                log.debug(
+                    "Field not found : '%(name)s', default value : \
+'%(data)s', type : '%(e_type)s'",
+                    log_data,
+                )
             else:
                 log.debug("Field not found : '" + self._name + "'")
 
@@ -819,7 +831,7 @@ config file." % {"name": self._name}
         You does not need to have multiple declarations.
         """
 
-        ret = dict()
+        ret = {}
         if self._required:
             if self.value is not None:
                 ret["default"] = self.value
@@ -828,10 +840,9 @@ config file." % {"name": self._name}
         ret["dest"] = self._name
         if self._dest:
             ret["dest"] = self._dest
-        if not self.e_type_exclude:
-            if self.e_type == int or self.e_type == float:
-                # Just override argparse.add_argument 'type' parameter for int or float.
-                ret["type"] = self.e_type
+        if not self.e_type_exclude and (self.e_type == int or self.e_type == float):
+            # Just override argparse.add_argument 'type' parameter for int or float.
+            ret["type"] = self.e_type
         if self.value is not None:
             ret["default"] = self.value
         if self._desc:
@@ -855,7 +866,7 @@ config file." % {"name": self._name}
             f.write("\n")
             if self._desc and self._desc != argparse.SUPPRESS:
                 f.write("# Description : ")
-                for i in self._desc.split('\n'):
+                for i in self._desc.split("\n"):
                     f.write("# ")
                     f.write(i)
                     f.write("\n")
@@ -871,7 +882,7 @@ config file." % {"name": self._name}
 
 
 class ElementWithSubSections(Element):
-    """ This class extends the default class Element. It offers you the power
+    """This class extends the default class Element. It offers you the power
     to add sections (SubSection) inside a element.
     The simple case is one section containing some elements.
     But in some situation you may represent your data like a tree.
@@ -900,7 +911,7 @@ class ElementWithSubSections(Element):
     """
 
     def __init__(self, name, subsection, *args, **kwargs):
-        super(ElementWithSubSections, self).__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs)
         self.e_type = str
         # FIXME: why using a list if we have only one section ?
         self.sections = OrderedDict()
@@ -932,8 +943,11 @@ class ElementWithSubSections(Element):
         """
 
         if not issubclass(section.__class__, SubSection):
-            raise TypeError("Argument should be a subclass of SubSection, \
-                             not :" + str(section.__class__))
+            raise TypeError(
+                "Argument should be a subclass of SubSection, \
+                             not :"
+                + str(section.__class__)
+            )
         # we always use the element name as the unique section name.
         self.sections[self.name] = section
         return section
@@ -948,8 +962,7 @@ class ElementWithSubSections(Element):
 
 
 class ElementWithRelativeSubSection(Element):
-
-    """ This class extends the default class Element. It offers you the power
+    """This class extends the default class Element. It offers you the power
     to add sections (SubSection) inside a element.
     The simple case is one section containing some elements.
     But in some situation you may represent your data like a tree and, you want
@@ -1020,12 +1033,15 @@ class ElementWithRelativeSubSection(Element):
     """
 
     def __init__(self, name, rss, *args, **kwargs):
-        super(ElementWithRelativeSubSection, self).__init__(name, *args, **kwargs)
+        super().__init__(name, *args, **kwargs)
         self.e_type = list
         self.sections = OrderedDict()
         if not issubclass(rss.__class__, SubSection):
-            raise TypeError("Argument should be a subclass of SubSection, \
-                            not :" + str(_Section.__class__))
+            raise TypeError(
+                "Argument should be a subclass of SubSection, \
+                            not :"
+                + str(_Section.__class__)
+            )
         self.rss = rss
 
     def load(self, file_parser, section_name):
@@ -1034,12 +1050,12 @@ class ElementWithRelativeSubSection(Element):
             for sec_name in self.value:
                 try:
                     sec = copy.deepcopy(self.rss, None)
-                    setattr(sec, '_name', sec_name)
+                    sec._name = sec_name
                     self.sections[sec_name] = sec
                     sec.load(file_parser)
                 except ValueError as e:
                     # pylint: disable-msg=W0621
-                    log = logging.getLogger('argtoolbox')
+                    log = logging.getLogger("argtoolbox")
                     error = []
                     error.append("Missing relative section, attribute : ")
                     error.append("'[" + section_name + "]." + self._name)
@@ -1068,10 +1084,9 @@ class DefaultCommand:
     action you want to create."""
 
     def __init__(self, config=None):
-        self.log = logging.getLogger(
-            'argtoolbox.' + str(self.__class__.__name__.lower()))
+        self.log = logging.getLogger("argtoolbox." + str(self.__class__.__name__.lower()))
         self.config = config
-        self.protected_args = ['password']
+        self.protected_args = ["password"]
 
     def __call__(self, args):
         self._log_namespace(args)
@@ -1079,7 +1094,7 @@ class DefaultCommand:
     def _log_namespace(self, args):
         dict_tmp = copy.copy(args)
         # delattr(dict_tmp, "__func__")
-        for field in getattr(self, 'protected_args', []):
+        for field in getattr(self, "protected_args", []):
             if hasattr(dict_tmp, field):
                 setattr(dict_tmp, field, "xxxxxxxx")
         self.log.debug("Namespace : begin :")
@@ -1101,7 +1116,7 @@ class TestCommand(DefaultCommand):
     """Just a simple command, using the default command class."""
 
     def __call__(self, args):
-        super(TestCommand, self).__call__(args)
+        super().__call__(args)
         print("")
         print("This is the beginning of the TestCommand class.")
         print("")
@@ -1121,14 +1136,14 @@ class TestCommand(DefaultCommand):
 
 
 class DefaultCompleter:
-    """ TODO
-    """
+    """TODO"""
+
     def __init__(self, func_name="complete"):
         self.func_name = func_name
 
     def __call__(self, prefix, **kwargs):
-        from argcomplete import debug
-        from argcomplete import warn
+        from argcomplete import debug, warn
+
         try:
             debug("\n------------ DefaultCompleter -----------------")
             debug("Kwargs content :")
@@ -1136,7 +1151,7 @@ class DefaultCompleter:
                 debug("key : " + str(i))
                 debug("\t - " + str(j))
 
-            args = kwargs.get('parsed_args')
+            args = kwargs.get("parsed_args")
             # pylint: disable-msg=W0612
             # parser = kwargs.get('parser')
             # a = parser.parse_known_args()
@@ -1157,15 +1172,17 @@ class DefaultCompleter:
         # pylint: disable-msg=W0703
         except Exception as e:
             from argcomplete import warn
+
             warn("\nERROR::COMPLETE:An exception was caught :" + str(e) + "\n")
             import traceback
+
             traceback.print_exc()
             debug("\n------\n")
             return ["comlete-error"]
 
 
 class DefaultProgram:
-    """ TODO """
+    """TODO"""
 
     def __init__(self, parser, config=None, force_debug=False):
         self.parser = parser
@@ -1176,9 +1193,7 @@ class DefaultProgram:
 
         def patch(self, parser, namespace, values, option_string=None):
             """patch original __call__ method for argparse 1.1 (fix)"""
-            from argparse import _UNRECOGNIZED_ARGS_ATTR
-            from argparse import SUPPRESS
-            from argparse import _
+            from argparse import _UNRECOGNIZED_ARGS_ATTR, SUPPRESS, _
 
             parser_name = values[0]
             arg_strings = values[1:]
@@ -1191,16 +1206,15 @@ class DefaultProgram:
             try:
                 parser = self._name_parser_map[parser_name]
             except KeyError:
-                tup = parser_name, ', '.join(self._name_parser_map)
-                msg = _('unknown parser %r (choices: %s)') % tup
+                tup = parser_name, ", ".join(self._name_parser_map)
+                msg = _("unknown parser %r (choices: %s)") % tup
                 raise ArgumentError(self, msg)
 
             # parse all the remaining options into the namespace
             # store any unrecognized options on the object, so that the top
             # level parser can decide what to do with them
 
-            namespace, arg_strings = parser.parse_known_args(arg_strings,
-                                                             namespace)
+            namespace, arg_strings = parser.parse_known_args(arg_strings, namespace)
             if arg_strings:
                 vars(namespace).setdefault(_UNRECOGNIZED_ARGS_ATTR, [])
                 getattr(namespace, _UNRECOGNIZED_ARGS_ATTR).extend(arg_strings)
@@ -1212,6 +1226,7 @@ class DefaultProgram:
                 # pylint: disable=protected-access
                 argparse._SubParsersAction.__call__ = patch
             import argcomplete
+
             argcomplete.autocomplete(self.parser)
         except ImportError:
             pass
@@ -1219,8 +1234,8 @@ class DefaultProgram:
         # parse cli arguments
         args = self.parse_args()
 
-        if getattr(args, 'debug', False) or self.force_debug:
-            if hasattr(args, 'debugger_names') and getattr(args, 'debugger_names'):
+        if getattr(args, "debug", False) or self.force_debug:
+            if hasattr(args, "debugger_names") and args.debugger_names:
                 for name in args.debugger_names:
                     llog = logging.getLogger(name)
                     llog.setLevel(logging.DEBUG)
@@ -1234,17 +1249,16 @@ class DefaultProgram:
                 print("debug----------- processing --------------<<<<")
 
             # run command
-            if not hasattr(args, '__func__'):
+            if not hasattr(args, "__func__"):
                 self.parser.error("You must provide a command. See --help.")
             return args.__func__(args)
         else:
             # pylint: disable-msg=W0621
-            log = logging.getLogger('argtoolbox')
+            log = logging.getLogger("argtoolbox")
             try:
                 # run command
-                if not hasattr(args, '__func__'):
-                    self.parser.error(
-                            "You must provide a command. See --help.")
+                if not hasattr(args, "__func__"):
+                    self.parser.error("You must provide a command. See --help.")
                 return args.__func__(args)
             except ValueError as a:
                 log.error("ValueError : " + str(a))
@@ -1275,16 +1289,28 @@ class DefaultProgram:
 
 
 class BasicProgram:
-    """ TODO """
+    """TODO"""
 
-    def __init__(self, name, config_file=None, desc=None,
-                 mandatory=False, use_config_file=True, version="0.1-alpha",
-                 force_debug=False, force_debug_to_file=False):
+    def __init__(
+        self,
+        name,
+        config_file=None,
+        desc=None,
+        mandatory=False,
+        use_config_file=True,
+        version=__version__,
+        force_debug=False,
+        force_debug_to_file=False,
+    ):
 
         # create configuration
-        self.config = Config(name, config_file=config_file, desc=desc,
-                             mandatory=mandatory,
-                             use_config_file=use_config_file)
+        self.config = Config(
+            name,
+            config_file=config_file,
+            desc=desc,
+            mandatory=mandatory,
+            use_config_file=use_config_file,
+        )
         self.prog_name = name
         self.parser = None
         self.version = version
@@ -1309,7 +1335,7 @@ class BasicProgram:
 
         if self.force_debug_to_file:
             dest = self.prog_name + ".log"
-            FILEHA = logging.FileHandler(dest, 'w', 'utf-8')
+            FILEHA = logging.FileHandler(dest, "w", "utf-8")
             FILEHA.setFormatter(DEBUG_LOGGING_FORMAT)
             log.setLevel(logging.DEBUG)
             log.addHandler(FILEHA)
@@ -1318,16 +1344,19 @@ class BasicProgram:
         return log
 
     def add_config_options(self):
-        """ You can override this method in order to add your options to the
+        """You can override this method in order to add your options to the
         config object."""
         # default section
         default = self.config.get_default_section()
         default.add_element(
-            Element('debug',
-                    e_type=int,
-                    e_type_exclude=True,
-                    default=0,
-                    desc="""debug level : default : 0."""))
+            Element(
+                "debug",
+                e_type=int,
+                e_type_exclude=True,
+                default=0,
+                desc="""debug level : default : 0.""",
+            )
+        )
 
     def load(self):
         # loading default configuration from the file
@@ -1338,15 +1367,11 @@ class BasicProgram:
         self.parser = self.config.get_parser()
         if self.formatter_class:
             self.parser.formatter_class = self.formatter_class
-        self.parser.add_argument('-v', '--verbose',
-                                 action="store_true",
-                                 default=False)
-        self.parser.add_argument('--version',
-                                 action="version",
-                                 version="%(prog)s " + self.version)
+        self.parser.add_argument("-v", "--verbose", action="store_true", default=False)
+        self.parser.add_argument("--version", action="version", version="%(prog)s " + self.version)
 
     def add_pre_commands(self):
-        """ You can override this method in order to add your command line
+        """You can override this method in order to add your command line
         arguments to the argparse parser. The configuration file is already
         loaded at this time."""
         pass
@@ -1357,13 +1382,12 @@ class BasicProgram:
         self.config.reload()
 
     def add_commands(self):
-        """ You can override this method in order to add your command line
+        """You can override this method in order to add your command line
         arguments to the argparse parser. The configuration file  was
         reloaded at this time."""
         self.parser.add_argument(
-            '-d',
-            action="count",
-            **self.config.default.debug.get_arg_parse_arguments())
+            "-d", action="count", **self.config.default.debug.get_arg_parse_arguments()
+        )
 
     def __call__(self):
 
@@ -1388,8 +1412,7 @@ class BasicProgram:
         self.add_commands()
 
         # run
-        run = DefaultProgram(self.parser, self.config,
-                             force_debug=self.force_debug)
+        run = DefaultProgram(self.parser, self.config, force_debug=self.force_debug)
         if run():
             sys.exit(0)
         else:
@@ -1399,10 +1422,7 @@ class BasicProgram:
 def query_yes_no(question, default="yes"):
     """Just prompt the user for a yes/no question"""
     res = _query_yes_no(question, default)
-    if res == "yes":
-        return True
-    else:
-        return False
+    return res == "yes"
 
 
 def _query_yes_no(question, default="yes"):
@@ -1415,8 +1435,7 @@ def _query_yes_no(question, default="yes"):
 
     The "answer" return value is one of "yes" or "no".
     """
-    valid = {"yes": "yes", "y": "yes", "ye": "yes",
-             "no": "no", "n": "no"}
+    valid = {"yes": "yes", "y": "yes", "ye": "yes", "no": "no", "n": "no"}
     if default is None:
         prompt = " [y/n] "
     elif default == "yes":
@@ -1424,7 +1443,7 @@ def _query_yes_no(question, default="yes"):
     elif default == "no":
         prompt = " [y/N] "
     else:
-        raise ValueError("invalid default answer: '%s'" % default)
+        raise ValueError(f"invalid default answer: '{default}'")
 
     while True:
         sys.stdout.write(question + prompt)
@@ -1433,10 +1452,9 @@ def _query_yes_no(question, default="yes"):
         except KeyboardInterrupt:
             print()
             return "no"
-        if default is not None and choice == '':
+        if default is not None and choice == "":
             return default
         elif choice in list(valid.keys()):
             return valid[choice]
         else:
-            sys.stdout.write("Please respond with 'yes' or 'no' "
-                             "(or 'y' or 'n').\n")
+            sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")

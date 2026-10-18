@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 
 # This file is part of argtoolbox.
@@ -25,19 +24,18 @@
 #
 
 
-
-from argtoolbox import DefaultCommand
-from argtoolbox import BasicProgram
+from argtoolbox import BasicProgram, DefaultCommand
 
 # if you want to debug argcomplete completion,
 # you just need to export _ARC_DEBUG=True
+
 
 # Step 1
 class TestCommand(DefaultCommand):
     """Just a simple command, using the default command class."""
 
     def __call__(self, args):
-        super(TestCommand, self).__call__(args)
+        super().__call__(args)
         # Step 2
         print("")
         print("This is the beginning of the TestCommand class.")
@@ -51,21 +49,19 @@ class TestCommand(DefaultCommand):
 
 # Step 3
 class MyProgram(BasicProgram):
-
     def add_commands(self):
         # Step 4
         subparsers = self.parser.add_subparsers()
         parser_tmp = subparsers.add_parser(
-            'test',
+            "test",
             help="This command will print cli argv and configuration read \
-            from the config file.")
-        parser_tmp.add_argument('--host', required=True)
-        parser_tmp.add_argument('--port', default=3000)
+            from the config file.",
+        )
+        parser_tmp.add_argument("--host", required=True)
+        parser_tmp.add_argument("--port", default=3000)
         parser_tmp.set_defaults(__func__=TestCommand(self.config))
 
 
-PROG = MyProgram("sample-program",
-                 desc="""Just a description for a sample program.""")
+PROG = MyProgram("sample-program", desc="""Just a description for a sample program.""")
 if __name__ == "__main__":
-
     PROG()

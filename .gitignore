@@ -37,8 +37,34 @@
 .Trashes
 
 
-# temp directories
+# Python build artifacts
 ##################
-build
-dist
-argtoolbox.egg-info
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Development tools
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Modern Python tools
+uv.lock
+.python-version
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
